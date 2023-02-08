@@ -139,6 +139,9 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 	if (!TA_is_stream_cipher(operation->mode)) {
 		/* prepend input_op if remaining input_saved data present */
 		input_op->data_length = input->data_length + operation->input_saved.data_length;
+		if (!input_op->data_length)
+			return;
+
 		input_op->data = TEE_Malloc(input_op->data_length, TEE_MALLOC_FILL_ZERO);
 
 		if (operation->input_saved.data)
@@ -154,6 +157,9 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 		operation->input_saved.data_length = 0;
 	} else {
 		input_op->data_length = input->data_length;
+		if (!input_op->data_length)
+			return;
+
 		input_op->data = TEE_Malloc(input_op->data_length, TEE_MALLOC_FILL_ZERO);
 		if (input->data)
 			memcpy(input_op->data, input->data, input->data_length);
