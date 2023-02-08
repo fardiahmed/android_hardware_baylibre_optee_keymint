@@ -62,17 +62,12 @@
 			.last_access = NULL,			\
 			.operation = TEE_HANDLE_NULL,		\
 			.digest_op = TEE_HANDLE_NULL,		\
-			.prev_in_size = UNDEFINED,		\
 			.min_sec = UNDEFINED,			\
 			.mac_length = UNDEFINED,		\
 			.a_data_length = 0,			\
 			.a_data = NULL,				\
 			.do_auth = false,			\
 			.got_input = false,			\
-			.buffering = false,			\
-			.padded = false,			\
-			.first = true,				\
-			.last_block = EMPTY_BLOB}
 
 uint64_t identifier_rsa[] = {1, 2, 840, 113549, 1, 1, 1};
 /* RSAPrivateKey ::= SEQUENCE {

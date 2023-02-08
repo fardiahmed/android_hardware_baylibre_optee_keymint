@@ -37,7 +37,6 @@ typedef struct {
 	uint8_t key_id[TAG_LENGTH];
 	keymaster_key_blob_t *key;
 	keymaster_blob_t nonce;
-	keymaster_blob_t last_block;
 	keymaster_operation_handle_t op_handle;
 	keymaster_purpose_t purpose;
 	keymaster_padding_t padding;
@@ -46,7 +45,6 @@ typedef struct {
 	TEE_Time *last_access;
 	TEE_OperationHandle *operation;
 	TEE_OperationHandle *digest_op;
-	size_t prev_in_size;
 	uint32_t min_sec;
 	uint32_t mac_length;
 	uint32_t digestLength;
@@ -54,9 +52,6 @@ typedef struct {
 	uint8_t *a_data;
 	bool do_auth;
 	bool got_input;
-	bool buffering;
-	bool padded;
-	bool first;
 } keymaster_operation_t;
 
 void TA_free_blob_list(keymaster_blob_list_item_t *item);

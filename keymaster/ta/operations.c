@@ -75,18 +75,10 @@ keymaster_error_t TA_abort_operation(
 				TEE_Free(operations[i].a_data);
 			operations[i].a_data = NULL;
 			operations[i].a_data_length = 0;
-			operations[i].buffering = false;
-			operations[i].prev_in_size = UNDEFINED;
 			if (operations[i].nonce.data)
 				TEE_Free(operations[i].nonce.data);
 			operations[i].nonce.data = NULL;
 			operations[i].nonce.data_length = 0;
-			operations[i].padded = false;
-			operations[i].first = true;
-			if (operations[i].last_block.data)
-				TEE_Free(operations[i].last_block.data);
-			operations[i].last_block.data = NULL;
-			operations[i].last_block.data_length = 0;
 			TEE_MemFill(operations[i].key_id, 0,
 				    sizeof(operations[i].key_id));
 			break;
@@ -114,14 +106,8 @@ void TA_reset_operations_table(void)
 		operations[i].digestLength = UNDEFINED;
 		operations[i].a_data = NULL;
 		operations[i].a_data_length = 0;
-		operations[i].buffering = false;
-		operations[i].prev_in_size = UNDEFINED;
 		operations[i].nonce.data = NULL;
 		operations[i].nonce.data_length = 0;
-		operations[i].last_block.data = NULL;
-		operations[i].last_block.data_length = 0;
-		operations[i].first = true;
-		operations[i].padded = false;
 		TEE_MemFill(operations[i].key_id, 0,
 			    sizeof(operations[i].key_id));
 	}
