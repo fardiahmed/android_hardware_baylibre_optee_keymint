@@ -164,6 +164,58 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 	}
 }
 
+static void TA_prepend_output(keymaster_operation_t *operation, keymaster_blob_t *output)
+{
+	uint8_t* tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
+	memcpy(tmp, output->data, output->data_length);
+
+	output->data = TEE_Realloc(output->data, output->data_length +
+				   operation->output_saved.data_length);
+
+	memcpy(output->data, operation->output_saved.data,
+	       operation->output_saved.data_length);
+	memcpy(output->data + operation->output_saved.data_length,
+	       tmp, output->data_length);
+
+	output->data_length += operation->output_saved.data_length;
+
+	TEE_Free(tmp);
+}
+
+static void TA_save_output(keymaster_operation_t *operation, keymaster_blob_t *output)
+{
+	uint8_t* tmp = NULL;
+	size_t tmp_length;
+
+	if (operation->output_saved.data) {
+		tmp_length = operation->output_saved.data_length;
+		tmp = TEE_Malloc(tmp_length, TEE_MALLOC_FILL_ZERO);
+		memcpy(tmp, operation->output_saved.data, tmp_length);
+
+		TEE_Free(operation->output_saved.data);
+		operation->output_saved.data = NULL;
+		operation->output_saved.data_length = 0;
+	}
+
+	if (output->data_length > 0 && (output->data_length % BLOCK_SIZE == 0)) {
+		operation->output_saved.data_length = output->data_length;
+		operation->output_saved.data = TEE_Malloc(output->data_length,
+							  TEE_MALLOC_FILL_ZERO);
+		memcpy(operation->output_saved.data, output->data, output->data_length);
+		TEE_Free(output->data);
+	}
+
+	if (tmp) {
+		output->data = TEE_Malloc(tmp_length, TEE_MALLOC_FILL_ZERO);
+		memcpy(output->data, tmp, tmp_length);
+		output->data_length = tmp_length;
+		TEE_Free(tmp);
+	} else {
+		output->data = NULL;
+		output->data_length = 0;
+	}
+}
+
 keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
  				keymaster_blob_t *input,
  				keymaster_blob_t *output, uint32_t *out_size,
@@ -243,11 +295,24 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 					out_size);
 	}
 	output->data_length = *out_size;
+
 	if (res == KM_ERROR_OK && operation->padding == KM_PAD_PKCS7
 			&& operation->purpose == KM_PURPOSE_DECRYPT) {
-		if (output->data_length > 0) {
-			res = TA_remove_pkcs7_pad(output, out_size);
+
+		/* prepend output if remaining output_saved data present */
+		if (operation->output_saved.data) {
+			TA_prepend_output(operation, output);
+			*out_size = output->data_length;
+
+			TEE_Free(operation->output_saved.data);
+			operation->output_saved.data = NULL;
+			operation->output_saved.data_length = 0;
 		}
+
+		if (TA_check_pkcs7_pad(output))
+			res = TA_remove_pkcs7_pad(output, out_size);
+		else
+			res = KM_ERROR_INVALID_ARGUMENT;
 	}
 out:
 	if (input_op.data)
@@ -338,6 +403,16 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 	*input_consumed += remaining_input;
 	if (*input_consumed > input_provided)
 		*input_consumed = input_provided;
+
+	if (res == KM_ERROR_OK && operation->padding == KM_PAD_PKCS7 &&
+	    operation->purpose == KM_PURPOSE_DECRYPT) {
+
+		/* When padding is used, output is produced one input byte later:
+		 * once the first byte of the next input block is provided.
+		 */
+		TA_save_output(operation, output);
+		*out_size = output->data_length;
+	}
 
 	if (input_op.data)
 		TEE_Free(input_op.data);

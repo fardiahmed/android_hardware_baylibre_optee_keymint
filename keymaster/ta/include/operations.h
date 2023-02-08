@@ -38,6 +38,7 @@ typedef struct {
 	keymaster_key_blob_t *key;
 	keymaster_blob_t nonce;
 	keymaster_blob_t input_saved;
+	keymaster_blob_t output_saved;
 	keymaster_operation_handle_t op_handle;
 	keymaster_purpose_t purpose;
 	keymaster_padding_t padding;
