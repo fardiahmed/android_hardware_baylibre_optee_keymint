@@ -33,7 +33,7 @@ keymaster_error_t TA_check_out_size(const uint32_t input_l,
 
 keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
 				const bool force, keymaster_blob_t *output,
-				uint32_t *out_size, bool *is_input_ext);
+				uint32_t *out_size);
 
 keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
 					uint32_t *out_size);
@@ -41,7 +41,7 @@ keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
 bool TA_check_pkcs7_pad(keymaster_blob_t *output);
 
 keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
-				const uint32_t key_size);
+				const uint32_t key_size, bool *input_allocate_memory);
 
 keymaster_error_t TA_do_rsa_pkcs_v1_5_rawpad(uint8_t **input, uint32_t *input_l,
 					     const uint32_t key_size);

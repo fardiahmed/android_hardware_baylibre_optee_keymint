@@ -125,7 +125,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 				const uint32_t key_size,
 				const keymaster_blob_t signature,
 				const TEE_ObjectHandle obj_h,
-				bool *is_input_ext)
+				bool *input_allocate_memory)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	TEE_Attribute *attrs = NULL;
@@ -145,7 +145,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 		in_buf = digest_out;
 		in_buf_l = digest_out_size;
 	} else {
-		res = TA_append_sf_data(input, operation, is_input_ext);
+		res = TA_append_sf_data(input, operation, input_allocate_memory);
 		if (res != KM_ERROR_OK)
 			goto out;
 		/* No need to change output size when stored data is appended */
@@ -176,8 +176,8 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 				/* the data must be zero-padded on
 				 * the left before signing/encryption
 				 */
-				res = TA_do_rsa_pad(&in_buf, &in_buf_l,
-								key_size);
+				res = TA_do_rsa_pad(&in_buf, &in_buf_l, key_size,
+						    input_allocate_memory);
 				input->data = in_buf; /*Will be freed in TA_finish*/
 				if (res != KM_ERROR_OK)
 					goto out;
@@ -346,7 +346,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 		 * and TEE_AsymmetricEncrypt for unpadded operation truncate all
 		 * zeroes but one if it is the last. Restore result array.
 		 */
-		res = TA_do_rsa_pad(&output->data, out_size, key_size);
+		res = TA_do_rsa_pad(&output->data, out_size, key_size, input_allocate_memory);
 	}
 	/* Convert error code to Android type */
 	if (res == (int) TEE_ERROR_BAD_PARAMETERS &&
@@ -411,7 +411,7 @@ keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 				 * if it is the last. Restore result.
 				 */
 				res = TA_do_rsa_pad(&output->data, out_size,
-								key_size);
+						    key_size, true);
 			/* Convert error code to Android type */
 			if (res == (int) TEE_ERROR_BAD_PARAMETERS &&
 				      operation->padding != KM_PAD_NONE)

@@ -34,7 +34,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 				const uint32_t key_size,
 				const keymaster_blob_t signature,
 				const TEE_ObjectHandle obj_h,
-				bool *is_input_ext);
+				bool *input_allocate_memory);
 
 keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 				const keymaster_blob_t *input,

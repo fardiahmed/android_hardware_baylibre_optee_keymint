@@ -104,7 +104,7 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 				const keymaster_operation_t *operation,
-				bool *is_input_ext);
+				bool *input_allocate_memory);
 
 void TA_add_to_nonce(keymaster_operation_t *operation, const uint64_t value);
 

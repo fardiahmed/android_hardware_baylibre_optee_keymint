@@ -321,7 +321,7 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 				const keymaster_operation_t *operation,
-				bool *is_input_ext)
+				bool *input_allocate_memory)
 {
 	uint32_t size = 0;
 	uint32_t padding = 0;
@@ -329,7 +329,7 @@ keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 	keymaster_blob_list_item_t *current = operation->sf_item;
 
 	if (operation->sf_item == NULL) {
-		if (!(*is_input_ext)) {
+		if ((*input_allocate_memory) == false) {
 			/*
 			 * In this case input is stack variable and we need to
 			 * allocate memory for next operations.
@@ -340,7 +340,7 @@ keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
 			TEE_MemMove(ptr, input->data, input->data_length);
-			*is_input_ext = true;
+			*input_allocate_memory = true;
 			input->data = ptr;
 		}
 		return KM_ERROR_OK;
@@ -365,11 +365,14 @@ keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 		current = current->next;
 	}
 	TEE_MemMove(ptr + padding, input->data, input->data_length);
-	if (*is_input_ext)
+
+	/* free memory if it has been allocated for input */
+	if ((*input_allocate_memory) == true)
 		TEE_Free(input->data);
+	*input_allocate_memory = true;
+
 	input->data = ptr;
 	input->data_length = size + input->data_length;
-	*is_input_ext = true;
 	return KM_ERROR_OK;
 }
 

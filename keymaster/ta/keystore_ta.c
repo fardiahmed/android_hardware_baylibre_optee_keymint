@@ -531,11 +531,11 @@ static keymaster_error_t TA_getKeyCharacteristics(
 	if (res != KM_ERROR_OK)
 		goto exit;
 	in += TA_deserialize_blob_akms(in, in_end, &client_id, false, &res,
-				       false);
+				       true);
 	if (res != KM_ERROR_OK)
 		goto exit;
 	in += TA_deserialize_blob_akms(in, in_end, &app_data, false, &res,
-				       false);
+				       true);
 	if (res != KM_ERROR_OK)
 		goto exit;
 	if (key_blob.key_material_size == 0) {
@@ -657,7 +657,7 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 	if (res != KM_ERROR_OK)
 		goto out;
 	in += TA_deserialize_blob_akms(in, in_end, &key_data, false, &res,
-				       false);
+				       true);
 	if (res != KM_ERROR_OK)
 		goto out;
 
@@ -1589,7 +1589,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
-	bool is_input_ext = false;
+	bool input_allocate_memory;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1613,9 +1613,14 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res, true);
+
+	/* don't allocate memory, reference to in */
+	input_allocate_memory = false;
+	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res,
+				       input_allocate_memory);
 	if (res != KM_ERROR_OK)
 		goto out;
+
 	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
@@ -1651,7 +1656,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	case TEE_TYPE_AES:
 		res = TA_aes_update(operation, &input, &output, &keyblob_out_size,
 				    input_provided, &input_consumed,
-				    &in_params, &is_input_ext);
+				    &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
 		res = TA_rsa_update(operation, &input, &output,
@@ -1704,7 +1709,7 @@ out:
 exit:
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
-	if (input.data && is_input_ext)
+	if (input.data && (input_allocate_memory == true))
 		TEE_Free(input.data);
 	if (output.data)
 		TEE_Free(output.data);
@@ -1746,7 +1751,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
-	bool is_input_ext = false;
+	bool input_allocate_memory;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1771,13 +1776,17 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	if (res != KM_ERROR_OK)
 		goto out;
 	in += TA_deserialize_blob_akms(in, in_end, &signature, false, &res,
-				       false);
+				       true);
 	if (res != KM_ERROR_OK)
 		goto out;
 	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res, true);
+
+	/* don't allocate memory, reference to in */
+	input_allocate_memory = false;
+	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res,
+				       input_allocate_memory);
 	if (res != KM_ERROR_OK)
 		goto out;
 
@@ -1810,17 +1819,17 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	switch (type) {
 	case TEE_TYPE_AES:
 		res = TA_aes_finish(operation, &input, &output,
-				    &keyblob_out_size, tag_len, &is_input_ext,
+				    &keyblob_out_size, tag_len,
 				    &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
 		res = TA_rsa_finish(operation, &input, &output,
 				    &keyblob_out_size, key_size,
-				    signature, obj_h, &is_input_ext);
+				    signature, obj_h, &input_allocate_memory);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
 		res = TA_ec_finish(operation, &input, &output, &signature,
-				   &keyblob_out_size, key_size, &is_input_ext);
+				   &keyblob_out_size, key_size, &input_allocate_memory);
 		break;
 	default: /* HMAC */
 		if (operation->purpose == KM_PURPOSE_SIGN) {
@@ -1880,7 +1889,7 @@ exit:
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	TA_abort_operation(operation_handle);
-	if (input.data && is_input_ext)
+	if (input.data && (input_allocate_memory == true))
 		TEE_Free(input.data);
 	if (output.data)
 		TEE_Free(output.data);

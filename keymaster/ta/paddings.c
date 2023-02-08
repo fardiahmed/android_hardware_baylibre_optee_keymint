@@ -61,7 +61,7 @@ keymaster_error_t TA_check_out_size(const uint32_t input_l,
 
 keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
 				const bool force, keymaster_blob_t *output,
-				uint32_t *out_size, bool *is_input_ext)
+				uint32_t *out_size)
 {
 	uint32_t pad = 0;
 	uint8_t *data = NULL;
@@ -87,11 +87,10 @@ keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
 	}
 	TEE_MemMove(data, input->data, input->data_length);
 	TEE_MemFill(data + input->data_length, pad, pad);
-	if (*is_input_ext)
-		TEE_Free(input->data);
+	TEE_Free(input->data);
+
 	input->data = data;
 	input->data_length = input->data_length + pad;
-	*is_input_ext = true;
 	return TA_check_out_size(input->data_length, output, out_size, 0);
 }
 
@@ -126,7 +125,7 @@ keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
 }
 
 keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
-				const uint32_t key_size)
+				const uint32_t key_size, bool *input_allocate_memory)
 {
 	uint8_t *buf;
 	uint32_t key_size_bytes = key_size / 8;
@@ -138,7 +137,12 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
 		return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 	}
 	TEE_MemMove(buf + key_size_bytes - *input_l, *input, *input_l);
-	TEE_Free(*input);
+
+	/* free memory if it has been allocated for input */
+	if ((*input_allocate_memory) == true)
+		TEE_Free(buf);
+	*input_allocate_memory = true;
+
 	*input = buf;
 	*input_l = key_size_bytes;
 	return KM_ERROR_OK;

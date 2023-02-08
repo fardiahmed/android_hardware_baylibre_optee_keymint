@@ -47,7 +47,7 @@ bool TA_is_out_of_bounds(uint8_t *ptr, uint8_t *end, size_t size)
 /* Deserializers */
 int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
 			     const bool check_presence, keymaster_error_t *res,
-			     bool is_input)
+			     bool allocate_memory)
 {
 	uint8_t *data;
 	const uint8_t *start = in;
@@ -78,7 +78,7 @@ int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
 		*res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		return in - start;
 	}
-	if (!is_input) {
+	if (allocate_memory == true) {
 		/* Freed when deserialized blob is destroyed by caller */
 		data = TEE_Malloc(blob->data_length, TEE_MALLOC_FILL_ZERO);
 		if (!data) {

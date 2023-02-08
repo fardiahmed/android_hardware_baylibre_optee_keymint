@@ -38,7 +38,7 @@ static void TA_append_tag(keymaster_blob_t *output, uint32_t *out_size,
 
 static keymaster_error_t TA_append_input(keymaster_blob_t *input,
 					 keymaster_operation_t *operation,
-					 const uint32_t to_copy, bool *is_input_ext)
+					 const uint32_t to_copy)
 {
 	uint8_t *data = NULL;
 	uint32_t tag_length = operation->mac_length / 8;
@@ -51,20 +51,18 @@ static keymaster_error_t TA_append_input(keymaster_blob_t *input,
 	}
 	TEE_MemMove(data, operation->a_data, push_to_input);
 	TEE_MemMove(data + push_to_input, input->data, input->data_length);
-	if (*is_input_ext)
-		TEE_Free(input->data);
+	TEE_Free(input->data);
+
 	input->data = data;
 	input->data_length += push_to_input;
 	operation->a_data_length -= push_to_input;
 	TEE_MemMove(operation->a_data, operation->a_data + push_to_input,
 		    operation->a_data_length);
-	*is_input_ext = true;
 	return KM_ERROR_OK;
 }
 
 static keymaster_error_t TA_save_gcm_tag(keymaster_blob_t *input,
-					 keymaster_operation_t *operation,
-					 bool *is_input_ext)
+					 keymaster_operation_t *operation)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint32_t tag_size = operation->mac_length / 8;
@@ -75,7 +73,7 @@ static keymaster_error_t TA_save_gcm_tag(keymaster_blob_t *input,
 	if (input->data_length < tag_size)
 		to_copy = input->data_length;
 	if (operation->a_data_length + to_copy > tag_size) {
-		res = TA_append_input(input, operation, to_copy, is_input_ext);
+		res = TA_append_input(input, operation, to_copy);
 		if (res != KM_ERROR_OK)
 			return res;
 	}
@@ -90,7 +88,7 @@ static keymaster_error_t TA_save_gcm_tag(keymaster_blob_t *input,
 
 static keymaster_error_t TA_aes_gcm_prepare(keymaster_operation_t *operation,
 					    const keymaster_key_param_set_t *in_params,
-					    keymaster_blob_t *input, bool *is_input_ext)
+					    keymaster_blob_t *input)
 {
 	for (uint32_t i = 0; i < in_params->length; i++) {
 		if (in_params->params[i].tag == KM_TAG_ASSOCIATED_DATA) {
@@ -129,7 +127,7 @@ static keymaster_error_t TA_aes_gcm_prepare(keymaster_operation_t *operation,
 		 * the tag length and buffer the possible tag data
 		 * for processing during finish.
 		 */
-		return TA_save_gcm_tag(input, operation, is_input_ext);
+		return TA_save_gcm_tag(input, operation);
 	}
 	return KM_ERROR_OK;
 }
@@ -217,7 +215,7 @@ static void TA_save_output(keymaster_operation_t *operation, keymaster_blob_t *o
 keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 				keymaster_blob_t *input,
 				keymaster_blob_t *output, uint32_t *out_size,
-				uint32_t tag_len, bool *is_input_ext,
+				uint32_t tag_len,
 				const keymaster_key_param_set_t *in_params)
 {
 	TEE_Result tee_res = TEE_SUCCESS;
@@ -228,7 +226,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 	TA_fill_input_op(operation, input, &input_op);
 
 	if (operation->padding == KM_PAD_PKCS7 && operation->purpose == KM_PURPOSE_ENCRYPT) {
-		res = TA_add_pkcs7_pad(&input_op, true, output, out_size, is_input_ext);
+		res = TA_add_pkcs7_pad(&input_op, true, output, out_size);
 		if (res != KM_ERROR_OK)
 			goto out;
 	} else if (operation->padding == KM_PAD_NONE &&
@@ -247,7 +245,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 
 	if (operation->mode == KM_MODE_GCM) {
 		/* For KM_MODE_GCM */
-		res = TA_aes_gcm_prepare(operation, in_params, input, is_input_ext);
+		res = TA_aes_gcm_prepare(operation, in_params, &input_op);
 		if (res != KM_ERROR_OK)
 			goto out;
 		if (operation->purpose == KM_PURPOSE_ENCRYPT) {
@@ -327,8 +325,7 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 				uint32_t *out_size,
 				const uint32_t input_provided,
 				size_t *input_consumed,
-				const keymaster_key_param_set_t *in_params,
-				bool *is_input_ext)
+				const keymaster_key_param_set_t *in_params)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint32_t pos = 0U;
@@ -354,7 +351,7 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 
 	if (operation->mode == KM_MODE_GCM) {
 		/* check presence of associated data for AES keys */
-		res = TA_aes_gcm_prepare(operation, in_params, &input_op, is_input_ext);
+		res = TA_aes_gcm_prepare(operation, in_params, &input_op);
 		if (res != KM_ERROR_OK)
 			goto out;
 		/* Resize output if input_op length increased */

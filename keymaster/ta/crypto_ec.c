@@ -81,7 +81,7 @@ keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
 				keymaster_blob_t *signature,
 				uint32_t *out_size,
 				const uint32_t key_size,
-				bool *is_input_ext)
+				bool *input_allocate_memory)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint32_t digest_out_size = KM_MAX_DIGEST_SIZE;
@@ -105,7 +105,7 @@ keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
 			in_buf = digest_out;
 			in_buf_l = digest_out_size;
 		} else {
-			res = TA_append_sf_data(input, operation, is_input_ext);
+			res = TA_append_sf_data(input, operation, input_allocate_memory);
 			if (res != KM_ERROR_OK)
 				break;
 			/* Output size wount change ahen

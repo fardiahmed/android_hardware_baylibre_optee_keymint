@@ -1082,7 +1082,7 @@ TEE_Result TA_SetAttestationKey(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	TEE_MemMove(&algorithm, in, sizeof(algorithm));
 	in += sizeof(algorithm);
-	TA_deserialize_blob_akms(in, in_end, &input, false, &res, true);
+	TA_deserialize_blob_akms(in, in_end, &input, false, &res, false);
 	if (res != KM_ERROR_OK) {
 		EMSG("Error parsing inputs!");
 		result = TEE_ERROR_BAD_FORMAT;
@@ -1140,7 +1140,7 @@ TEE_Result TA_AppendAttestationCertKey(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	TEE_MemMove(&algorithm, in, sizeof(algorithm));
 	in += sizeof(algorithm);
-	TA_deserialize_blob_akms(in, in_end, &input, false, &res, true);
+	TA_deserialize_blob_akms(in, in_end, &input, false, &res, false);
 	if (res != KM_ERROR_OK) {
 		EMSG("Error parsing inputs!");
 		result = TEE_ERROR_BAD_FORMAT;

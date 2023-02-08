@@ -76,7 +76,7 @@ TEE_Result TA_serialize_ec_keypair(uint8_t *out, uint8_t *out_end,
 /* Deserializers */
 int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
 			     const bool check_presence, keymaster_error_t *res,
-			     bool is_input);
+			     bool allocate_memory);
 
 int TA_deserialize_auth_set(uint8_t *in, uint8_t *end,
 			    keymaster_key_param_set_t *param_set,
