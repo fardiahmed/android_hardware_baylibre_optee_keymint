@@ -1587,7 +1587,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	uint32_t input_provided = 0;
 	keymaster_error_t res = KM_ERROR_OK;
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
-	keymaster_operation_t operation = EMPTY_OPERATION;
+	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	bool is_input_ext = false;
 	bool oob = false; /* out of bounds flag */
@@ -1624,13 +1624,13 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	res = TA_get_operation(operation_handle, &operation);
 	if (res != KM_ERROR_OK)
 		goto out;
-	key_material = TEE_Malloc(operation.key->key_material_size,
+	key_material = TEE_Malloc(operation->key->key_material_size,
 				  TEE_MALLOC_FILL_ZERO);
-	res = TA_restore_key(key_material, operation.key, &key_size, &type,
+	res = TA_restore_key(key_material, operation->key, &key_size, &type,
 			     &obj_h, &params_t);
 	if (res != KM_ERROR_OK)
 		goto out;
-	if (operation.do_auth) {
+	if (operation->do_auth) {
 		res = TA_do_auth(in_params, params_t);
 		if (res != KM_ERROR_OK) {
 			EMSG("Authentication failed");
@@ -1639,7 +1639,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 	if (input.data_length != 0 && type == TEE_TYPE_RSA_KEYPAIR)
-		operation.got_input = true;
+		operation->got_input = true;
 	keyblob_out_size = TA_possibe_size(type, key_size, input, 0);
 	output.data = TEE_Malloc(keyblob_out_size, TEE_MALLOC_FILL_ZERO);
 	if (!output.data) {
@@ -1649,21 +1649,21 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	switch (type) {
 	case TEE_TYPE_AES:
-		res = TA_aes_update(&operation, &input, &output, &keyblob_out_size,
+		res = TA_aes_update(operation, &input, &output, &keyblob_out_size,
 				    input_provided, &input_consumed,
 				    &in_params, &is_input_ext);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
-		res = TA_rsa_update(&operation, &input, &output,
+		res = TA_rsa_update(operation, &input, &output,
 				    &keyblob_out_size, key_size,
 				    &input_consumed, input_provided, obj_h);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
-		res = TA_ec_update(&operation, &input, &output,
+		res = TA_ec_update(operation, &input, &output,
 				   &input_consumed, input_provided);
 		break;
 	default:/* HMAC */
-		TEE_MACUpdate(*operation.operation, input.data,
+		TEE_MACUpdate(operation->operation, input.data,
 			      input.data_length);
 		input_consumed = input_provided;
 	}
@@ -1698,7 +1698,7 @@ out:
 			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
-		TA_update_operation(operation_handle, &operation);
+		TA_update_operation(operation_handle, operation);
 	}
 
 exit:
@@ -1744,7 +1744,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	uint32_t tag_len = 0;
 	keymaster_error_t res = KM_ERROR_OK;
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
-	keymaster_operation_t operation = EMPTY_OPERATION;
+	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	bool is_input_ext = false;
 	bool oob = false; /* out of bounds flag */
@@ -1784,21 +1784,21 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	res = TA_get_operation(operation_handle, &operation);
 	if (res != KM_ERROR_OK)
 		goto out;
-	key_material = TEE_Malloc(operation.key->key_material_size,
+	key_material = TEE_Malloc(operation->key->key_material_size,
 				  TEE_MALLOC_FILL_ZERO);
-	res = TA_restore_key(key_material, operation.key, &key_size, &type,
+	res = TA_restore_key(key_material, operation->key, &key_size, &type,
 			     &obj_h, &params_t);
 	if (res != KM_ERROR_OK)
 		goto out;
-	if (operation.do_auth) {
+	if (operation->do_auth) {
 		res = TA_do_auth(in_params, params_t);
 		if (res != KM_ERROR_OK) {
 			EMSG("Authentication failed");
 			goto out;
 		}
 	}
-	if (type == TEE_TYPE_AES && operation.mode == KM_MODE_GCM)
-		tag_len = operation.mac_length / 8; /* from bits to bytes */
+	if (type == TEE_TYPE_AES && operation->mode == KM_MODE_GCM)
+		tag_len = operation->mac_length / 8; /* from bits to bytes */
 
 	keyblob_out_size = TA_possibe_size(type, key_size, input, tag_len);
 	output.data = TEE_Malloc(keyblob_out_size, TEE_MALLOC_FILL_ZERO);
@@ -1809,36 +1809,36 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	switch (type) {
 	case TEE_TYPE_AES:
-		res = TA_aes_finish(&operation, &input, &output,
+		res = TA_aes_finish(operation, &input, &output,
 				    &keyblob_out_size, tag_len, &is_input_ext,
 				    &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
-		res = TA_rsa_finish(&operation, &input, &output,
+		res = TA_rsa_finish(operation, &input, &output,
 				    &keyblob_out_size, key_size,
 				    signature, obj_h, &is_input_ext);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
-		res = TA_ec_finish(&operation, &input, &output, &signature,
+		res = TA_ec_finish(operation, &input, &output, &signature,
 				   &keyblob_out_size, key_size, &is_input_ext);
 		break;
 	default: /* HMAC */
-		if (operation.purpose == KM_PURPOSE_SIGN) {
-			TEE_MACComputeFinal(*operation.operation, input.data,
+		if (operation->purpose == KM_PURPOSE_SIGN) {
+			TEE_MACComputeFinal(operation->operation, input.data,
 					    input.data_length, output.data,
 					    &keyblob_out_size);
 			/* Trim out size to KM_TAG_MAC_LENGTH */
-			if (operation.mac_length != UNDEFINED) {
+			if (operation->mac_length != UNDEFINED) {
 				if (keyblob_out_size >
-				    operation.mac_length / 8) {
+				    operation->mac_length / 8) {
 					DMSG("Trim HMAC out size to %d",
-					     operation.mac_length);
+					     operation->mac_length);
 					keyblob_out_size =
-						operation.mac_length / 8;
+						operation->mac_length / 8;
 				}
 			}
 		} else { /* KM_PURPOSE_VERIFY */
-			res = TEE_MACCompareFinal(*operation.operation,
+			res = TEE_MACCompareFinal(operation->operation,
 						  input.data,
 						  input.data_length,
 						  signature.data,

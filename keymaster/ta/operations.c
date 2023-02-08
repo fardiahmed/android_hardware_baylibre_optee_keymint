@@ -253,7 +253,7 @@ keymaster_error_t TA_start_operation(
 }
 
 keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
-					keymaster_operation_t *operation)
+					keymaster_operation_t **operation)
 {
 	keymaster_error_t res = KM_ERROR_INVALID_OPERATION_HANDLE;
 	TEE_Time cur_t;
@@ -263,7 +263,7 @@ keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
 			TEE_GetSystemTime(&cur_t);
 			operations[i].last_access = &cur_t;
 			res = KM_ERROR_OK;
-			*operation = operations[i];
+			*operation = &operations[i];
 			break;
 		}
 	}

@@ -92,7 +92,7 @@ keymaster_error_t TA_start_operation(
 				uint8_t *key_id);
 
 keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
-				keymaster_operation_t *operation);
+				keymaster_operation_t **operation);
 
 keymaster_error_t TA_update_operation(const keymaster_operation_handle_t op_handle,
 				keymaster_operation_t *operation);
