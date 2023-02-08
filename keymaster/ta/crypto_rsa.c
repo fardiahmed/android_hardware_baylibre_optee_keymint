@@ -176,8 +176,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 				/* the data must be zero-padded on
 				 * the left before signing/encryption
 				 */
-				res = TA_do_rsa_pad(&in_buf, &in_buf_l, key_size,
-						    input_allocate_memory);
+				res = TA_do_rsa_pad(&in_buf, &in_buf_l, key_size);
 				input->data = in_buf; /*Will be freed in TA_finish*/
 				if (res != KM_ERROR_OK)
 					goto out;
@@ -346,7 +345,7 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation,
 		 * and TEE_AsymmetricEncrypt for unpadded operation truncate all
 		 * zeroes but one if it is the last. Restore result array.
 		 */
-		res = TA_do_rsa_pad(&output->data, out_size, key_size, input_allocate_memory);
+		res = TA_do_rsa_pad(&output->data, out_size, key_size);
 	}
 	/* Convert error code to Android type */
 	if (res == (int) TEE_ERROR_BAD_PARAMETERS &&
@@ -411,7 +410,7 @@ keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 				 * if it is the last. Restore result.
 				 */
 				res = TA_do_rsa_pad(&output->data, out_size,
-						    key_size, true);
+						    key_size);
 			/* Convert error code to Android type */
 			if (res == (int) TEE_ERROR_BAD_PARAMETERS &&
 				      operation->padding != KM_PAD_NONE)

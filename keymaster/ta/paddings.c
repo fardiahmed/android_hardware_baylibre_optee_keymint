@@ -125,7 +125,7 @@ keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
 }
 
 keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
-				const uint32_t key_size, bool *input_allocate_memory)
+				const uint32_t key_size)
 {
 	uint8_t *buf;
 	uint32_t key_size_bytes = key_size / 8;
@@ -137,11 +137,7 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
 		return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 	}
 	TEE_MemMove(buf + key_size_bytes - *input_l, *input, *input_l);
-
-	/* free memory if it has been allocated for input */
-	if ((*input_allocate_memory) == true)
-		TEE_Free(*input);
-	*input_allocate_memory = true;
+	TEE_Free(*input);
 
 	*input = buf;
 	*input_l = key_size_bytes;
