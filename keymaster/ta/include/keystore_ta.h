@@ -68,6 +68,7 @@
 			.a_data = NULL,				\
 			.do_auth = false,			\
 			.got_input = false,			\
+			.input_saved = EMPTY_BLOB,		\
 
 uint64_t identifier_rsa[] = {1, 2, 840, 113549, 1, 1, 1};
 /* RSAPrivateKey ::= SEQUENCE {

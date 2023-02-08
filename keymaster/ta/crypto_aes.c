@@ -136,6 +136,34 @@ static keymaster_error_t TA_aes_gcm_prepare(keymaster_operation_t *operation,
 	return KM_ERROR_OK;
 }
 
+static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t *input,
+			     keymaster_blob_t *input_op)
+{
+	/* KM_MODE_CBC, KM_MODE_ECB */
+	if (!TA_is_stream_cipher(operation->mode)) {
+		/* prepend input_op if remaining input_saved data present */
+		input_op->data_length = input->data_length + operation->input_saved.data_length;
+		input_op->data = TEE_Malloc(input_op->data_length, TEE_MALLOC_FILL_ZERO);
+
+		if (operation->input_saved.data)
+			memcpy(input_op->data, operation->input_saved.data,
+			       operation->input_saved.data_length);
+		if (input->data)
+			memcpy(input_op->data + operation->input_saved.data_length, input->data,
+			       input->data_length);
+
+		if (operation->input_saved.data)
+			TEE_Free(operation->input_saved.data);
+		operation->input_saved.data = NULL;
+		operation->input_saved.data_length = 0;
+	} else {
+		input_op->data_length = input->data_length;
+		input_op->data = TEE_Malloc(input_op->data_length, TEE_MALLOC_FILL_ZERO);
+		if (input->data)
+			memcpy(input_op->data, input->data, input->data_length);
+	}
+}
+
 keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
  				keymaster_blob_t *input,
  				keymaster_blob_t *output, uint32_t *out_size,
@@ -145,21 +173,24 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 	TEE_Result tee_res = TEE_SUCCESS;
 	keymaster_error_t res = KM_ERROR_OK;
 	uint8_t *tag = NULL;
+	keymaster_blob_t input_op;
+
+	TA_fill_input_op(operation, input, &input_op);
 
 	if (operation->padding == KM_PAD_PKCS7 &&
 			operation->purpose == KM_PURPOSE_ENCRYPT) {
-		res = TA_add_pkcs7_pad(input, true, output, out_size, is_input_ext);
+		res = TA_add_pkcs7_pad(&input_op, true, output, out_size, is_input_ext);
 		if (res != KM_ERROR_OK)
 			goto out;
 	} else if (operation->padding == KM_PAD_NONE && (operation->mode ==
 			KM_MODE_CBC || operation->mode == KM_MODE_ECB) &&
-			input->data_length % BLOCK_SIZE != 0) {
+			input_op.data_length % BLOCK_SIZE != 0) {
 		EMSG("Input data size for AES CBC and ECB modes without padding must be a multiple of block size");
 		res = KM_ERROR_INVALID_INPUT_LENGTH;
 		goto out;
 	} else if (operation->padding == KM_PAD_PKCS7 &&
 			operation->purpose == KM_PURPOSE_DECRYPT &&
-			input->data_length % BLOCK_SIZE != 0) {
+			input_op.data_length % BLOCK_SIZE != 0) {
 		EMSG("Input data size for AES PKCS7 must be a multiple of block size");
 		res = KM_ERROR_INVALID_INPUT_LENGTH;
 		goto out;
@@ -178,7 +209,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 				goto out;
 			}
 			res = TEE_AEEncryptFinal(*operation->operation,
-						input->data, input->data_length,
+						input_op.data, input_op.data_length,
 						output->data, out_size,
 						tag, &tag_len);
 			if (res != KM_ERROR_OK) {
@@ -195,7 +226,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 			 * input data of last Update as the tag
 			 */
 			tee_res = TEE_AEDecryptFinal(*operation->operation,
-						input->data, input->data_length,
+						input_op.data, input_op.data_length,
 						output->data, out_size,
 						operation->a_data, /*tag to compare*/
 						operation->mac_length / 8);
@@ -207,8 +238,8 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 			}
 		}
 	} else {
-		res = TEE_CipherDoFinal(*operation->operation, input->data,
-					input->data_length, output->data,
+		res = TEE_CipherDoFinal(*operation->operation, input_op.data,
+					input_op.data_length, output->data,
 					out_size);
 	}
 	output->data_length = *out_size;
@@ -219,6 +250,8 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 		}
 	}
 out:
+	if (input_op.data)
+		TEE_Free(input_op.data);
 	if (tag)
 		TEE_Free(tag);
 	return res;
@@ -237,22 +270,37 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 	uint32_t pos = 0U;
 	uint32_t remainder = 0;
 	uint32_t in_size = BLOCK_SIZE;
+	keymaster_blob_t input_op;
+	size_t remaining_input = 0;
 
+	TA_fill_input_op(operation, input, &input_op);
 
-	remainder = input->data_length - pos;
+	/* save in input_saved if input_op size is not modulo block size */
+	if (!TA_is_stream_cipher(operation->mode)) {
+		remaining_input = input_op.data_length % BLOCK_SIZE;
+		if (remaining_input) {
+			input_op.data_length -= remaining_input;
+			operation->input_saved.data_length = remaining_input;
+			operation->input_saved.data = TEE_Malloc(remaining_input,
+								 TEE_MALLOC_FILL_ZERO);
+			memcpy(operation->input_saved.data, input_op.data + input_op.data_length,
+			       remaining_input);
+		}
+	}
+
 	if (operation->mode == KM_MODE_GCM) {
 		/* check presence of associated data for AES keys */
-		res = TA_aes_gcm_prepare(operation, in_params, input,
+		res = TA_aes_gcm_prepare(operation, in_params, &input_op,
 								is_input_ext);
 		if (res != KM_ERROR_OK)
 			goto out;
-		/* Resize output if input length increased */
-		res = TA_check_out_size(input->data_length, output, out_size,
+		/* Resize output if input_op length increased */
+		res = TA_check_out_size(input_op.data_length, output, out_size,
 						operation->mac_length / 8);
 		if (res != KM_ERROR_OK)
 			goto out;
-		res = TEE_AEUpdate(*operation->operation, input->data,
-				input->data_length, output->data, out_size);
+		res = TEE_AEUpdate(*operation->operation, input_op.data,
+				   input_op.data_length, output->data, out_size);
 		if (res != KM_ERROR_OK)
 			goto out;
 		output->data_length += *out_size;
@@ -261,15 +309,18 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 		if (operation->mode == KM_MODE_CTR)
 			/* CTR is a stream mode */
 			in_size = input->data_length;
+
+		remainder = input_op.data_length;
 		while (operation->mode == KM_MODE_CTR
 			   || remainder / BLOCK_SIZE != 0) {
+
 			/* calculate memory left.
 			 * Add BLOCK_SIZE in case adding padding
 			 */
-			*out_size = BLOCK_SIZE + input->data_length -
+			*out_size = BLOCK_SIZE + input_op.data_length -
 							output->data_length;
 			res = TEE_CipherUpdate(*operation->operation,
-					input->data + pos, in_size,
+					input_op.data + pos, in_size,
 					output->data + pos, out_size);
 			if (res != TEE_SUCCESS) {
 				EMSG("Error TEE_CipherUpdate, res=%x", res);
@@ -283,8 +334,13 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 				break;
 		}
 	}
+
+	*input_consumed += remaining_input;
 	if (*input_consumed > input_provided)
 		*input_consumed = input_provided;
+
+	if (input_op.data)
+		TEE_Free(input_op.data);
 out:
 	return res;
 }
