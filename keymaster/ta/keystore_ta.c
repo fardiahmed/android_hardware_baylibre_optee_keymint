@@ -1668,7 +1668,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 				   &input_consumed, input_provided);
 		break;
 	default:/* HMAC */
-		TEE_MACUpdate(operation->operation, input.data,
+		TEE_MACUpdate(*operation->operation, input.data,
 			      input.data_length);
 		input_consumed = input_provided;
 	}
@@ -1833,7 +1833,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 		break;
 	default: /* HMAC */
 		if (operation->purpose == KM_PURPOSE_SIGN) {
-			TEE_MACComputeFinal(operation->operation, input.data,
+			TEE_MACComputeFinal(*operation->operation, input.data,
 					    input.data_length, output.data,
 					    &keyblob_out_size);
 			/* Trim out size to KM_TAG_MAC_LENGTH */
@@ -1847,7 +1847,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 				}
 			}
 		} else { /* KM_PURPOSE_VERIFY */
-			res = TEE_MACCompareFinal(operation->operation,
+			res = TEE_MACCompareFinal(*operation->operation,
 						  input.data,
 						  input.data_length,
 						  signature.data,
