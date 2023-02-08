@@ -391,7 +391,7 @@ int TA_deserialize_param_set(uint8_t *in, uint8_t *end,
 				params->params[i].tag) == KM_BYTES) {
 			in += TA_deserialize_blob_akms(in, end,
 				&(params->params[i].key_param.blob),
-				false, res, false);
+				false, res, true);
 			if (*res != KM_ERROR_OK)
 				return in - start;
 		}
