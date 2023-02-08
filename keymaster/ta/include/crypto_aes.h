@@ -26,6 +26,8 @@
 #include "operations.h"
 #include "paddings.h"
 
+#define EMPTY_BLOB {.data = NULL, .data_length = 0}
+
 keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 				keymaster_blob_t *input,
 				keymaster_blob_t *output, uint32_t *out_size,

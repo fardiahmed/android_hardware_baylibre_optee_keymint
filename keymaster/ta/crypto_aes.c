@@ -251,7 +251,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 	TEE_Result tee_res = TEE_SUCCESS;
 	keymaster_error_t res = KM_ERROR_OK;
 	uint8_t *tag = NULL;
-	keymaster_blob_t input_op;
+	keymaster_blob_t input_op = EMPTY_BLOB;
 
 	TA_fill_input_op(operation, input, &input_op);
 
@@ -361,7 +361,7 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 	uint32_t pos = 0U;
 	uint32_t remainder = 0;
 	uint32_t in_size = BLOCK_SIZE;
-	keymaster_blob_t input_op;
+	keymaster_blob_t input_op = EMPTY_BLOB;
 	size_t remaining_input = 0;
 
 	TA_fill_input_op(operation, input, &input_op);
