@@ -140,7 +140,7 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
 
 	/* free memory if it has been allocated for input */
 	if ((*input_allocate_memory) == true)
-		TEE_Free(buf);
+		TEE_Free(*input);
 	*input_allocate_memory = true;
 
 	*input = buf;
