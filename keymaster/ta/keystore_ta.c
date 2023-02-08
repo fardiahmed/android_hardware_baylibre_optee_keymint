@@ -232,7 +232,12 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 		EMSG("Out of output buffer space");
 		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+
+        /* current version 3.0 */
+        keymaster_version_t version = { 3, 0, 0 };
+        TEE_MemMove(out, &version, sizeof(keymaster_version_t));
+
+        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	return res;
 }

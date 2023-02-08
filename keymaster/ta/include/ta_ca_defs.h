@@ -311,6 +311,12 @@ typedef struct {
 	size_t length;
 } keymaster_key_param_set_t;
 
+typedef struct {
+	uint8_t major_ver;
+	uint8_t minor_ver;
+	uint8_t subminor_ver;
+} keymaster_version_t;
+
 /**
  * Parameters that define a key's characteristics, including authorized modes of usage and access
  * control restrictions.  The parameters are divided into two categories, those that are enforced by
