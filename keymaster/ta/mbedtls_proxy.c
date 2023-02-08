@@ -1276,7 +1276,7 @@ static TEE_Result mbedTLS_attest_key_cert(mbedtls_pk_context *issuer_key,
 	/* add attestation OID */
 	ret =  mbedtls_x509write_crt_set_extension(&crt, attestation_oid,
 						   MBEDTLS_OID_SIZE(MBEDTLS_OID_ATTESTATION),
-			                           1, attest_ext->data, attest_ext->data_length);
+			                           0, attest_ext->data, attest_ext->data_length);
 	if (ret) {
 		EMSG("mbedtls_x509write_crt_set_key_usage: failed: -%#x",
 				-ret);
