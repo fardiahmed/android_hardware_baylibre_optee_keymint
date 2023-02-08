@@ -160,7 +160,7 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 	}
 }
 
-static void TA_prepend_output(keymaster_operation_t *operation, keymaster_blob_t *output)
+static void TA_pkcs7_prepend_output(keymaster_operation_t *operation, keymaster_blob_t *output)
 {
 	uint8_t* tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
 	memcpy(tmp, output->data, output->data_length);
@@ -178,11 +178,15 @@ static void TA_prepend_output(keymaster_operation_t *operation, keymaster_blob_t
 	TEE_Free(tmp);
 }
 
-static void TA_save_output(keymaster_operation_t *operation, keymaster_blob_t *output)
+static void TA_pkcs7_save_output(keymaster_operation_t *operation, keymaster_blob_t *output,
+                                 bool remaining_input)
 {
 	uint8_t* tmp = NULL;
-	size_t tmp_length;
+	size_t tmp_length = 0, save_offset = 0;
 
+        /* If some output data have been saved from previous operation,
+         * add these data to tmp buffer.
+         */
 	if (operation->output_saved.data) {
 		tmp_length = operation->output_saved.data_length;
 		tmp = TEE_Malloc(tmp_length, TEE_MALLOC_FILL_ZERO);
@@ -194,12 +198,38 @@ static void TA_save_output(keymaster_operation_t *operation, keymaster_blob_t *o
 	}
 
 	if (output->data_length > 0 && (output->data_length % BLOCK_SIZE == 0)) {
-		operation->output_saved.data_length = output->data_length;
-		operation->output_saved.data = TEE_Malloc(output->data_length,
-							  TEE_MALLOC_FILL_ZERO);
-		memcpy(operation->output_saved.data, output->data, output->data_length);
-		TEE_Free(output->data);
-	}
+
+                /* If we have remaining input, that means we can produce the output.
+                 * Otherwise we should save the last block of output and wait next operation.
+                 */
+                if (remaining_input == false) {
+                        save_offset = ((output->data_length / BLOCK_SIZE) - 1) * BLOCK_SIZE;
+
+                        /* save last block of output */
+                        operation->output_saved.data_length = BLOCK_SIZE;
+                        operation->output_saved.data = TEE_Malloc(BLOCK_SIZE, TEE_MALLOC_FILL_ZERO);
+                        memcpy(operation->output_saved.data, output->data + save_offset, BLOCK_SIZE);
+
+                        /* append to tmp the whole output without last block */
+                        if (save_offset > 0) {
+                                if (tmp)
+                                        tmp = TEE_Realloc(tmp, tmp_length + save_offset);
+                                else
+                                        tmp = TEE_Malloc(save_offset, TEE_MALLOC_FILL_ZERO);
+                                memcpy(tmp + tmp_length, output->data, save_offset);
+                                tmp_length += save_offset;
+                        }
+                } else {
+                        if (tmp)
+                                tmp = TEE_Realloc(tmp, tmp_length + output->data_length);
+                        else
+                                tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
+                        memcpy(tmp + tmp_length, output->data, output->data_length);
+                        tmp_length += output->data_length;
+                }
+
+                TEE_Free(output->data);
+        }
 
 	if (tmp) {
 		output->data = TEE_Malloc(tmp_length, TEE_MALLOC_FILL_ZERO);
@@ -298,7 +328,7 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 
 		/* prepend output if remaining output_saved data present */
 		if (operation->output_saved.data) {
-			TA_prepend_output(operation, output);
+			TA_pkcs7_prepend_output(operation, output);
 			*out_size = output->data_length;
 
 			TEE_Free(operation->output_saved.data);
@@ -402,7 +432,7 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 		/* When padding is used, output is produced one input byte later:
 		 * once the first byte of the next input block is provided.
 		 */
-		TA_save_output(operation, output);
+		TA_pkcs7_save_output(operation, output, remaining_input > 0);
 		*out_size = output->data_length;
 	}
 
