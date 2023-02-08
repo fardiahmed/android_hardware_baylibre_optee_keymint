@@ -54,32 +54,26 @@ using ::keymaster::ng::Tag;
 namespace keymaster {
 
 static inline keymaster_tag_type_t typeFromTag(const keymaster_tag_t tag) {
-    ALOGD("%s %d", __func__, __LINE__);
     return keymaster_tag_get_type(tag);
 }
 
 inline static keymaster_tag_t legacy_enum_conversion(const Tag value) {
-    ALOGD("%s %d", __func__, __LINE__);
     return keymaster_tag_t(value);
 }
 
 inline static Tag legacy_enum_conversion(const keymaster_tag_t value) {
-    ALOGD("%s %d", __func__, __LINE__);
     return Tag(value);
 }
 
 inline static keymaster_purpose_t legacy_enum_conversion(const KeyPurpose value) {
-    ALOGD("%s %d", __func__, __LINE__);
     return keymaster_purpose_t(value);
 }
 
 inline static keymaster_key_format_t legacy_enum_conversion(const KeyFormat value) {
-    ALOGD("%s %d", __func__, __LINE__);
     return keymaster_key_format_t(value);
 }
 
 inline static ErrorCode legacy_enum_conversion(const keymaster_error_t value) {
-    ALOGD("%s %d", __func__, __LINE__);
     return ErrorCode(value);
 }
 
@@ -89,7 +83,6 @@ inline static ErrorCode legacy_enum_conversion(const keymaster_error_t value) {
 class KmParamSet : public keymaster_key_param_set_t {
   public:
 	KmParamSet(const hidl_vec<KeyParameter> &keyParams) {
-	    ALOGD("%s %d", __func__, __LINE__);
 	    params = new keymaster_key_param_t[keyParams.size()];
 	    length = keyParams.size();
 	    for (size_t i = 0; i < keyParams.size(); ++i) {
@@ -132,7 +125,6 @@ class KmParamSet : public keymaster_key_param_set_t {
 
     KmParamSet(KmParamSet&& other) noexcept
         : keymaster_key_param_set_t{other.params, other.length} {
-	    ALOGD("%s %d", __func__, __LINE__);
 	    other.length = 0;
 	    other.params = nullptr;
 	}
@@ -143,14 +135,12 @@ class KmParamSet : public keymaster_key_param_set_t {
 
 inline static hidl_vec<uint8_t> kmBlob2hidlVec(const keymaster_key_blob_t &blob) {
     hidl_vec<uint8_t> result;
-    ALOGD("%s %d", __func__, __LINE__);
     result.setToExternal(const_cast<unsigned char *>(blob.key_material), blob.key_material_size);
     return result;
 }
 
 inline static hidl_vec<uint8_t> kmBlob2hidlVec(const keymaster_blob_t &blob) {
     hidl_vec<uint8_t> result;
-    ALOGD("%s %d", __func__, __LINE__);
     result.setToExternal(const_cast<unsigned char *>(blob.data), blob.data_length);
     return result;
 }
@@ -164,7 +154,6 @@ inline hidl_vec<uint8_t> kmBuffer2hidlVec(const ::keymaster::Buffer& buf) {
 inline static hidl_vec<hidl_vec<uint8_t>> kmCertChain2Hidl(
                 const keymaster_cert_chain_t *cert_chain) {
     hidl_vec<hidl_vec<uint8_t>> result;
-    ALOGD("%s %d", __func__, __LINE__);
     if (!cert_chain || cert_chain->entry_count == 0 || !cert_chain->entries)
         return result;
 
@@ -180,7 +169,6 @@ inline static hidl_vec<hidl_vec<uint8_t>> kmCertChain2Hidl(
 
 static inline hidl_vec<KeyParameter> kmParamSet2Hidl(const keymaster_key_param_set_t& set) {
     hidl_vec<KeyParameter> result;
-    ALOGD("%s %d", __func__, __LINE__);
     if (set.length == 0 || set.params == nullptr) return result;
 
     result.resize(set.length);
@@ -241,7 +229,6 @@ OpteeKeymaster3Device::~OpteeKeymaster3Device() {}
 
 Return<void>  OpteeKeymaster3Device::getHardwareFeatures(getHardwareFeatures_cb _hidl_cb) {
     //send results off to the client
-    ALOGD("%s %d", __func__, __LINE__);
     _hidl_cb(true /* is_secure */, true /* supports_ec */,
              true /* supports_symmetric_cryptography */, true /* supports_attestation */,
              true /* supportsAllDigests */, "OP-TEE Keymaster HALv3_0", "OP-TEE Foundation");
@@ -278,7 +265,6 @@ int OpteeKeymaster3Device::osVersion(uint32_t *in) {
      * return (major * 100 + minor) * 100 + subminor;
      * = major * 10000 + minor * 100 + subminor
      */
-    ALOGD("%s %d", __func__, __LINE__);
     if (property_get("ro.build.version.release", value, "") <= 0) {
         ALOGE("Error get property ro.build.version.release");
         goto exit;
@@ -349,7 +335,6 @@ int OpteeKeymaster3Device::osPatchlevel(uint32_t *in) {
     char value[PROPERTY_VALUE_MAX] = {0,};
     char *str = value;
 
-    ALOGD("%s %d", __func__, __LINE__);
     if (property_get("ro.build.version.security_patch", value, "") <= 0) {
         ALOGE("Error get property ro.build.version.security_patch");
         *in = 0xFFFFFFFF;
@@ -455,7 +440,6 @@ Return<void>  OpteeKeymaster3Device::exportKey(KeyFormat exportFormat,
 int OpteeKeymaster3Device::verifiedBootState(uint8_t *in) {
     char value[PROPERTY_VALUE_MAX] = {0,};
 
-    ALOGD("%s %d", __func__, __LINE__);
     if (property_get("ro.boot.verifiedbootstate", value, "") > 0) {
         if (value[0] == 'g') {
             *in = (uint8_t) 0x0;
@@ -530,7 +514,6 @@ Return<ErrorCode> OpteeKeymaster3Device::deleteAllKeys() {
 
 Return<ErrorCode> OpteeKeymaster3Device::destroyAttestationIds() {
     //ErrorCode rc = ErrorCode::OK;
-    ALOGD("%s %d", __func__, __LINE__);
     return ErrorCode::UNIMPLEMENTED;
 }
 

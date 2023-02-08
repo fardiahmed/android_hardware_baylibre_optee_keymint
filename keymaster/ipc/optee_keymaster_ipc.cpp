@@ -202,7 +202,6 @@ keymaster_error_t optee_keymaster_call(uint32_t cmd,
     uint32_t res;
     uint32_t err_origin;
 
-    ALOGD("%s %d %u\n", __func__, __LINE__, cmd);
     if (!connected) {
 	ALOGE("Keystore trusted application is not connected");
 	return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
