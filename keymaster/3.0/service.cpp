@@ -43,7 +43,7 @@ int main() {
         ALOGE("Could not register service for Keymaster 3.0 ");
         return 1;
     }
-    property_set("keymaster.optee.status", "ready");
+    property_set("vendor.keymaster.optee.status", "ready");
     android::hardware::joinRpcThreadpool();
     return -1;  // Should never get here.
 }
