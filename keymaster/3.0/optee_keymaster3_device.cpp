@@ -20,8 +20,9 @@
 #include <memory>
 #include <new>
 
-#include <authorization_set.h>
+#include <keymaster/authorization_set.h>
 #include <keymaster/android_keymaster_messages.h>
+#include <keymaster_tags.h>
 #include <optee_keymaster/optee_keymaster3_device.h>
 #include <optee_keymaster/ipc/optee_keymaster_ipc.h>
 
