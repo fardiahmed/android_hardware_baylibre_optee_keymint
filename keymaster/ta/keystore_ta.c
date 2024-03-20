@@ -1802,42 +1802,9 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 
 	switch (cmd_id) {
 	/* Keymaster commands */
-	case KM_CONFIGURE:
-		DMSG("KM_CONFIGURE");
-		return TA_configure(params);
-	case KM_GET_VERSION:
-		DMSG("KM_GET_VERSION");
-		return TA_getVersion(params);
-	case KM_ADD_RNG_ENTROPY:
-		DMSG("KM_ADD_RNG_ENTROPY");
-		return TA_addRngEntropy(params);
 	case KM_GENERATE_KEY:
 		DMSG("KM_GENERATE_KEY");
 		return TA_generateKey(params);
-	case KM_GET_KEY_CHARACTERISTICS:
-		DMSG("KM_GET_KEY_CHARACTERISTICS");
-		return TA_getKeyCharacteristics(params);
-	case KM_IMPORT_KEY:
-		DMSG("KM_IMPORT_KEY");
-		return TA_importKey(params);
-	case KM_EXPORT_KEY:
-		DMSG("KM_EXPORT_KEY");
-		return TA_exportKey(params);
-	case KM_ATTEST_KEY:
-		DMSG("KM_ATTEST_KEY");
-		return TA_attestKey(params);
-	case KM_UPGRADE_KEY:
-		DMSG("KM_UPGRADE_KEY");
-		return TA_upgradeKey(params);
-	case KM_DELETE_KEY:
-		DMSG("KM_DELETE_KEY");
-		return TA_deleteKey(params);
-	case KM_DELETE_ALL_KEYS:
-		DMSG("KM_DELETE_ALL_KEYS");
-		return TA_deleteAllKeys(params);
-	case KM_DESTROY_ATTESTATION_IDS:
-		DMSG("KM_DESTROY_ATTESTATION_IDS");
-		return TA_destroyAttestationIds(params);
 	case KM_BEGIN_OPERATION:
 		DMSG("KM_BEGIN_OPERATION");
 		return TA_begin(params);
@@ -1850,6 +1817,39 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_ABORT_OPERATION:
 		DMSG("KM_ABORT_OPERATION");
 		return TA_abort(params);
+	case KM_IMPORT_KEY:
+		DMSG("KM_IMPORT_KEY");
+		return TA_importKey(params);
+	case KM_EXPORT_KEY:
+		DMSG("KM_EXPORT_KEY");
+		return TA_exportKey(params);
+	case KM_GET_VERSION:
+		DMSG("KM_GET_VERSION");
+		return TA_getVersion(params);
+	case KM_ADD_RNG_ENTROPY:
+		DMSG("KM_ADD_RNG_ENTROPY");
+		return TA_addRngEntropy(params);
+	case KM_GET_KEY_CHARACTERISTICS:
+		DMSG("KM_GET_KEY_CHARACTERISTICS");
+		return TA_getKeyCharacteristics(params);
+	case KM_ATTEST_KEY:
+		DMSG("KM_ATTEST_KEY");
+		return TA_attestKey(params);
+	case KM_UPGRADE_KEY:
+		DMSG("KM_UPGRADE_KEY");
+		return TA_upgradeKey(params);
+	case KM_CONFIGURE:
+		DMSG("KM_CONFIGURE");
+		return TA_configure(params);
+	case KM_DELETE_KEY:
+		DMSG("KM_DELETE_KEY");
+		return TA_deleteKey(params);
+	case KM_DELETE_ALL_KEYS:
+		DMSG("KM_DELETE_ALL_KEYS");
+		return TA_deleteAllKeys(params);
+	case KM_DESTROY_ATTESTATION_IDS:
+		DMSG("KM_DESTROY_ATTESTATION_IDS");
+		return TA_destroyAttestationIds(params);
 #ifdef CFG_ATTESTATION_PROVISIONING
 	/* Provisioning commands */
 	case KM_SET_ATTESTATION_KEY:
