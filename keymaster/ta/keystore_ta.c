@@ -1641,7 +1641,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 						  signature.data_length);
 			keyblob_out_size = 0;
 			/* Convert error code to Android style */
-			if (res == (int)TEE_ERROR_MAC_INVALID)
+			if (res == TEE_ERROR_MAC_INVALID)
 				error = KM_ERROR_VERIFICATION_FAILED;
 		}
 	}
