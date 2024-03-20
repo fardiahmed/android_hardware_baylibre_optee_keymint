@@ -1899,7 +1899,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		return TA_GetAuthTokenKey(params);
 
 	default:
-		DMSG("Unknown command %d", cmd_id);
+		EMSG("Unknown command %d", cmd_id);
 		return KM_ERROR_INVALID_ARGUMENT;
 	}
 }
