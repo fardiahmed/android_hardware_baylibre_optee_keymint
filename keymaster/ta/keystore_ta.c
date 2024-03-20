@@ -170,7 +170,7 @@ static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	in = (uint8_t *)params[0].memref.buffer;
@@ -186,7 +186,7 @@ static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 				sizeof(optee_km_context.os_version) +
 				sizeof(optee_km_context.os_patchlevel))) {
 		EMSG("Out of input array bounds on deserialization");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto out;
 	}
 
@@ -207,14 +207,14 @@ static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
-	return res;
+	return error;
 }
 
 static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
@@ -222,7 +222,7 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -231,10 +231,10 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 
 	/* current version 3.0 */
@@ -243,7 +243,7 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
-	return res;
+	return error;
 }
 
 /* Adds caller-provided entropy to the pool */
@@ -262,8 +262,9 @@ static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS])
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 	TEE_Param params_tee[TEE_NUM_PARAMS];
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
+	TEE_Result res = TEE_SUCCESS;
 
 	in = (uint8_t *)params[0].memref.buffer;
 	in_size = (size_t)params[0].memref.size;
@@ -278,27 +279,27 @@ static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS])
 		goto out;
 	if (TA_is_out_of_bounds(in, in_end, sizeof(data_length))) {
 		EMSG("Out of input array bounds on deserialization");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto out;
 	}
 	TEE_MemMove(&data_length, in, sizeof(data_length));
 	in += sizeof(data_length);
 	if (TA_is_out_of_bounds(in, in_end, data_length)) {
 		EMSG("Out of input array bounds on deserialization");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto out;
 	}
 	data = TEE_Malloc(data_length, TEE_MALLOC_FILL_ZERO);
 	if (!data) {
 		EMSG("Failed to allocate memory for data");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 	/* oob check done before TEE_Malloc above */
 	TEE_MemMove(data, in, data_length);
 	if (session_rngSTA == TEE_HANDLE_NULL) {
 		EMSG("Session with RNG static TA is not opened");
-		res = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+		error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
 		goto out;
 	}
 	params_tee[0].memref.buffer = data;
@@ -312,10 +313,10 @@ static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 	if (data)
@@ -323,7 +324,7 @@ out:
 
 	DMSG("rsp out buf:");
 	DHEXDUMP(params[1].memref.buffer, params[1].memref.size);
-	return res;
+	return error;
 }
 
 /* Generate new key and specify associated authorizations (key params) */
@@ -339,7 +340,7 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_blob_t key_blob = EMPTY_KEY_BLOB; /* OUT */
 	keymaster_key_characteristics_t characts = EMPTY_CHARACTS; /* OUT */
 	keymaster_algorithm_t key_algorithm = UNDEFINED;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_digest_t key_digest = UNDEFINED;
 	uint32_t key_buffer_size = 0; /* For serialization of generated key */
 	uint32_t characts_size = 0;
@@ -357,8 +358,8 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 
 	DMSG("%s %d", __func__, __LINE__);
 
-	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &error);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	/*
@@ -375,19 +376,19 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	TA_add_os_version_patchlevel(&params_t, os_version, os_patchlevel);
 
 	/* Parse mandatory and optional parameters */
-	res = TA_parse_params(params_t, &key_algorithm, &key_size,
-			      &key_rsa_public_exponent, &key_digest, false);
-	if (res != KM_ERROR_OK)
+	error = TA_parse_params(params_t, &key_algorithm, &key_size,
+				&key_rsa_public_exponent, &key_digest, false);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	if (key_size == UNDEFINED) {
 		EMSG("Key size must be specified");
-		res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
+		error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 		goto exit;
 	}
 	if (key_algorithm == KM_ALGORITHM_RSA && key_rsa_public_exponent == UNDEFINED) {
 		EMSG("RSA public exponent is missed");
-		res = KM_ERROR_INVALID_ARGUMENT;
+		error = KM_ERROR_INVALID_ARGUMENT;
 		goto exit;
 	}
 	if (key_algorithm == KM_ALGORITHM_EC) {
@@ -401,8 +402,8 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	 * into hardware-enforced and software-enforced lists
 	 * (except APPLICATION_ID and APPLICATION_DATA)
 	 */
-	res = TA_fill_characteristics(&characts, &params_t, &characts_size);
-	if (res != KM_ERROR_OK)
+	error = TA_fill_characteristics(&characts, &params_t, &characts_size);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	key_buffer_size = TA_get_key_size(key_algorithm);
@@ -412,13 +413,13 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	key_material = TEE_Malloc(key_blob.key_material_size, TEE_MALLOC_FILL_ZERO);
 	if (!key_material) {
 		EMSG("Failed to allocate memory for key_material");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto exit;
 	}
-	res = TA_generate_key(key_algorithm, key_size, key_material, key_digest,
-			      key_rsa_public_exponent);
-	if (res != KM_ERROR_OK) {
-		EMSG("Failed to generate key, res=%x", res);
+	error = TA_generate_key(key_algorithm, key_size, key_material, key_digest,
+				key_rsa_public_exponent);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to generate key, error=%x", error);
 		goto exit;
 	}
 
@@ -427,34 +428,34 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 			       &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto exit;
 	}
 
-	res = TA_encrypt(key_material, key_blob.key_material_size);
-	if (res != KM_ERROR_OK) {
-		EMSG("Failed to encrypt key blob, res=%x", res);
+	error = TA_encrypt(key_material, key_blob.key_material_size);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to encrypt key blob, error=%x", error);
 		goto exit;
 	}
 	key_blob.key_material = key_material;
 
 exit:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_key_blob_akms(out, out_end, &key_blob, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto out;
 		}
 		out += TA_serialize_characteristics_akms(out, out_end, &characts, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto out;
 		}
 	}
@@ -467,7 +468,7 @@ out:
 	TA_free_params(&characts.hw_enforced);
 	TA_free_params(&params_t);
 
-	return res;
+	return error;
 }
 
 /* Return key parameters and characteristics associated during generation */
@@ -484,7 +485,7 @@ static keymaster_error_t TA_getKeyCharacteristics(TEE_Param params[TEE_NUM_PARAM
 	keymaster_blob_t app_data = EMPTY_BLOB; /* IN */
 	keymaster_key_characteristics_t chr = EMPTY_CHARACTS; /* OUT */
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	uint32_t characts_size = 0;
 	uint32_t key_size = 0;
@@ -500,50 +501,50 @@ static keymaster_error_t TA_getKeyCharacteristics(TEE_Param params[TEE_NUM_PARAM
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_key_blob_akms(in, in_end, &key_blob, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_blob_akms(in, in_end, &key_blob, &error);
+	if (error != KM_ERROR_OK)
 		goto exit;
-	in += TA_deserialize_blob_akms(in, in_end, &client_id, false, &res, true);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_blob_akms(in, in_end, &client_id, false, &error, true);
+	if (error != KM_ERROR_OK)
 		goto exit;
-	in += TA_deserialize_blob_akms(in, in_end, &app_data, false, &res, true);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_blob_akms(in, in_end, &app_data, false, &error, true);
+	if (error != KM_ERROR_OK)
 		goto exit;
 	if (key_blob.key_material_size == 0) {
 		EMSG("Bad key blob");
-		res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+		error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 		goto exit;
 	}
 	key_material = TEE_Malloc(key_blob.key_material_size, TEE_MALLOC_FILL_ZERO);
 	if (!key_material) {
 		EMSG("Failed to allocate memory for key material");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto exit;
 	}
-	res = TA_restore_key(key_material, &key_blob, &key_size, &type, &obj_h,
-			     &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, &key_blob, &key_size, &type, &obj_h,
+			       &params_t);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
-	res = TA_check_permission(&params_t, client_id, app_data, &exportable);
-	if (res != KM_ERROR_OK)
+	error = TA_check_permission(&params_t, client_id, app_data, &exportable);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
-	res = TA_fill_characteristics(&chr, &params_t, &characts_size);
-	if (res != KM_ERROR_OK)
+	error = TA_fill_characteristics(&chr, &params_t, &characts_size);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 exit:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_characteristics_akms(out, out_end, &chr, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto out;
 		}
 	}
@@ -565,7 +566,7 @@ out:
 	TA_free_params(&chr.hw_enforced);
 	TA_free_params(&params_t);
 
-	return res;
+	return error;
 }
 
 /* Imports key material into Keymaster hardware */
@@ -581,7 +582,7 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_blob_t key_data = EMPTY_BLOB; /* IN */
 	keymaster_key_blob_t key_blob = EMPTY_KEY_BLOB; /* OUT */
 	keymaster_key_characteristics_t characts = EMPTY_CHARACTS; /* OUT */
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_algorithm_t key_algorithm = UNDEFINED;
 	keymaster_digest_t key_digest = UNDEFINED;
 	TEE_Attribute *attrs_in = NULL;
@@ -601,42 +602,42 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 	TA_add_origin(&params_t, KM_ORIGIN_IMPORTED, true);
 
 	if (TA_is_out_of_bounds(in, in_end, sizeof(key_format))) {
 		EMSG("Out of input array bounds on deserialization");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto out;
 	}
 	TEE_MemMove(&key_format, in, sizeof(key_format));
-	in += TA_deserialize_key_format(in, in_end, &key_format, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_format(in, in_end, &key_format, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_blob_akms(in, in_end, &key_data, false, &res, true);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_blob_akms(in, in_end, &key_data, false, &error, true);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	/* Parse mandatory and optional parameters */
-	res = TA_parse_params(params_t, &key_algorithm, &key_size,
-			      &key_rsa_public_exponent, &key_digest, true);
-	if (res != KM_ERROR_OK)
+	error = TA_parse_params(params_t, &key_algorithm, &key_size,
+				&key_rsa_public_exponent, &key_digest, true);
+	if (error != KM_ERROR_OK)
 		goto out;
 	if (key_format == KM_KEY_FORMAT_RAW) {
 		if (key_algorithm != KM_ALGORITHM_AES &&
 		    key_algorithm != KM_ALGORITHM_HMAC) {
 			EMSG("Only HMAC and AES keys can imported in raw "
 			     "format");
-			res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+			error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 			/* goto out; */
 		}
 		if (key_size == UNDEFINED)
 			key_size = key_data.data_length * 8;
 		if (key_algorithm == KM_ALGORITHM_HMAC) {
-			res = TA_check_hmac_key_size(&key_data, &key_size, key_digest);
-			if (res != KM_ERROR_OK) {
+			error = TA_check_hmac_key_size(&key_data, &key_size, key_digest);
+			if (error != KM_ERROR_OK) {
 				EMSG("HMAC key check failed");
 				goto out;
 			}
@@ -647,21 +648,21 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 			EMSG("HMAC key size must be multiple of 8 in range "
 			     "from %d to %d",
 			     MIN_KEY_HMAC, MAX_KEY_HMAC);
-			res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
+			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		} else if (key_algorithm == KM_ALGORITHM_AES && key_size != 128 &&
 			   key_size != 192 && key_size != 256) {
 			EMSG("Unsupported key size %d ! Supported only 128, "
 			     "192 and 256",
 			     key_size);
-			res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
+			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		}
 
 		attrs_in = TEE_Malloc(sizeof(TEE_Attribute), TEE_MALLOC_FILL_ZERO);
 		if (!attrs_in) {
 			EMSG("Failed to allocate memory for attributes");
-			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+			error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			goto out;
 		}
 		attrs_in_count = 1;
@@ -673,22 +674,22 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 		    key_algorithm != KM_ALGORITHM_EC) {
 			EMSG("Only RSA and EC keys can be imported in PKCS8 "
 			     "format");
-			res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+			error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 			/* goto out; */
 		}
 
-		res = mbedTLS_decode_pkcs8(key_data, &attrs_in, &attrs_in_count,
-					   key_algorithm, &key_size,
-					   &key_rsa_public_exponent);
+		error = mbedTLS_decode_pkcs8(key_data, &attrs_in, &attrs_in_count,
+					     key_algorithm, &key_size,
+					     &key_rsa_public_exponent);
 
-		if (res != KM_ERROR_OK)
+		if (error != KM_ERROR_OK)
 			goto out;
 		if (key_algorithm == KM_ALGORITHM_RSA &&
 		    (key_size % 8 != 0 || key_size > MAX_KEY_RSA)) {
 			EMSG("RSA key size must be multiple of 8 and less than"
 			     " %u",
 			     MAX_KEY_RSA);
-			res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
+			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		}
 		if (key_algorithm == KM_ALGORITHM_RSA) {
@@ -696,27 +697,27 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 				EMSG("RSA key size must be multiple of 8 and "
 				     "less than %u",
 				     MAX_KEY_RSA);
-				res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
+				error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 				goto out;
 			}
 		}
 	}
 	TA_add_to_params(&params_t, key_size, key_rsa_public_exponent);
-	res = TA_fill_characteristics(&characts, &params_t, &characts_size);
-	if (res != KM_ERROR_OK)
+	error = TA_fill_characteristics(&characts, &params_t, &characts_size);
+	if (error != KM_ERROR_OK)
 		goto out;
 	key_buffer_size = TA_get_key_size(key_algorithm);
 	key_blob.key_material_size = characts_size + key_buffer_size + TAG_LENGTH;
 	key_material = TEE_Malloc(key_blob.key_material_size, TEE_MALLOC_FILL_ZERO);
 	if (!key_material) {
 		EMSG("Failed to allocate memory for key_material");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 
-	res = TA_import_key(key_algorithm, key_size, key_material, key_digest, attrs_in,
-			    attrs_in_count);
-	if (res != KM_ERROR_OK) {
+	error = TA_import_key(key_algorithm, key_size, key_material, key_digest, attrs_in,
+			      attrs_in_count);
+	if (error != KM_ERROR_OK) {
 		EMSG("Failed to import key");
 		goto out;
 	}
@@ -725,34 +726,34 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 			       &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto out;
 	}
 
-	res = TA_encrypt(key_material, key_blob.key_material_size);
-	if (res != KM_ERROR_OK) {
+	error = TA_encrypt(key_material, key_blob.key_material_size);
+	if (error != KM_ERROR_OK) {
 		EMSG("Failed to encrypt blob");
 		goto out;
 	}
 	key_blob.key_material = key_material;
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_key_blob_akms(out, out_end, &key_blob, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		out += TA_serialize_characteristics_akms(out, out_end, &characts, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 	}
@@ -761,7 +762,7 @@ exit:
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	if ((key_data.data && key_format != KM_KEY_FORMAT_RAW) ||
-	    (key_data.data && key_format == KM_KEY_FORMAT_RAW && res != KM_ERROR_OK)) {
+	    (key_data.data && key_format == KM_KEY_FORMAT_RAW && error != KM_ERROR_OK)) {
 		TEE_Free(key_data.data);
 	}
 
@@ -772,7 +773,7 @@ exit:
 	if (key_material)
 		TEE_Free(key_material);
 
-	return res;
+	return error;
 }
 
 /* Exports a public key from a Keymaster RSA or EC key pair */
@@ -787,7 +788,7 @@ static keymaster_error_t TA_exportKey(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_blob_t key_to_export = EMPTY_KEY_BLOB; /* IN */
 	keymaster_key_param_set_t in_params = EMPTY_PARAM_SET; /* IN */
 	keymaster_blob_t export_data = EMPTY_BLOB; /* OUT */
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	bool exportable = false;
@@ -805,60 +806,60 @@ static keymaster_error_t TA_exportKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_end = out + out_size;
 
 	/* additional param */
-	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_key_format(in, in_end, &export_format, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_format(in, in_end, &export_format, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_export, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_export, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	/* Keymaster supports export of public keys only in X.509 format */
 	if (export_format != KM_KEY_FORMAT_X509) {
 		EMSG("Unsupported key export format");
-		res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+		error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 		goto out;
 	}
 	key_material = TEE_Malloc(key_to_export.key_material_size, TEE_MALLOC_FILL_ZERO);
 	if (!key_material) {
 		EMSG("Failed to allocate memory for key material");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
-	res = TA_restore_key(key_material, &key_to_export, &key_size, &type, &obj_h,
-			     &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, &key_to_export, &key_size, &type, &obj_h,
+			       &params_t);
+	if (error != KM_ERROR_OK)
 		goto out;
-	res = TA_check_permission(&params_t,
-				  /* client id */
-				  in_params.params[0].key_param.blob,
-				  /* app_data */
-				  in_params.params[1].key_param.blob, &exportable);
-	if (res != KM_ERROR_OK)
+	error = TA_check_permission(&params_t,
+				    /* client id */
+				    in_params.params[0].key_param.blob,
+				    /* app_data */
+				    in_params.params[1].key_param.blob, &exportable);
+	if (error != KM_ERROR_OK)
 		goto out;
 	if (!exportable && type != TEE_TYPE_RSA_KEYPAIR &&
 	    type != TEE_TYPE_ECDSA_KEYPAIR) {
-		res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+		error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 		EMSG("This key type is not exportable");
 		goto out;
 	}
-	res = mbedTLS_encode_key(&export_data, type, &obj_h);
-	if (res != KM_ERROR_OK)
+	error = mbedTLS_encode_key(&export_data, type, &obj_h);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_blob_akms(out, out_end, &export_data, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 	}
@@ -877,7 +878,7 @@ exit:
 	TA_free_params(&params_t);
 	TA_free_params(&in_params);
 
-	return res;
+	return error;
 }
 
 static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
@@ -890,8 +891,8 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_blob_t key_to_attest = EMPTY_KEY_BLOB; /* IN */
 	keymaster_key_param_set_t attest_params = EMPTY_PARAM_SET; /* IN */
 	keymaster_cert_chain_t cert_chain = EMPTY_CERT_CHAIN; /* OUT */
-	keymaster_error_t res = KM_ERROR_OK;
-	TEE_Result result = TEE_SUCCESS;
+	keymaster_error_t error = KM_ERROR_OK;
+	TEE_Result res = TEE_SUCCESS;
 	keymaster_blob_t *challenge = NULL;
 	bool includeUniqueID = false;
 	bool resetSinceIDRotation = false;
@@ -928,35 +929,35 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 
 #ifndef CFG_ATTESTATION_PROVISIONING
 	/* This call creates keys/certs only once during first TA run */
-	result = TA_create_attest_objs();
-	if (result != TEE_SUCCESS) {
-		EMSG("Failed to create attestation objects, res=%x", result);
-		res = KM_ERROR_UNKNOWN_ERROR;
+	res = TA_create_attest_objs();
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to create attestation objects, res=%x", res);
+		error = KM_ERROR_UNKNOWN_ERROR;
 		goto exit;
 	}
 #endif
 
 	/* Key blob for which the attestation will be created */
-	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_attest, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_attest, &error);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	if (key_to_attest.key_material_size == 0) {
 		EMSG("Bad attestation key blob");
-		res = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
+		error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 		goto exit;
 	}
 
 	key_material = TEE_Malloc(key_to_attest.key_material_size, TEE_MALLOC_FILL_ZERO);
 	if (!key_material) {
 		EMSG("Failed to allocate memory for key material");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto exit;
 	}
 
 	/* Deserialize parameters necessary for attestation */
-	in += TA_deserialize_auth_set(in, in_end, &attest_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &attest_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto exit;
 	verified_boot_state = *in;
 
@@ -972,7 +973,7 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 			challenge = &attest_params.params[i].key_param.blob;
 			if (challenge->data_length > MAX_ATTESTATION_CHALLENGE) {
 				EMSG("Attestation challenge is too big");
-				res = KM_ERROR_INVALID_INPUT_LENGTH;
+				error = KM_ERROR_INVALID_INPUT_LENGTH;
 				goto exit;
 			}
 			break;
@@ -995,24 +996,24 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	(void)resetSinceIDRotation;
 	if (challenge == NULL) {
 		EMSG("Attestation challenge is missing");
-		res = KM_ERROR_ATTESTATION_CHALLENGE_MISSING;
+		error = KM_ERROR_ATTESTATION_CHALLENGE_MISSING;
 		goto exit;
 	}
 	if (attest_app_id == NULL) {
 		EMSG("Attestation application ID is missing");
-		res = KM_ERROR_ATTESTATION_APPLICATION_ID_MISSING;
+		error = KM_ERROR_ATTESTATION_APPLICATION_ID_MISSING;
 		goto exit;
 	}
 
 	/* Restore key */
-	res = TA_restore_key(key_material, &key_to_attest, &key_size, &key_type,
-			     &attestedKey, &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, &key_to_attest, &key_size, &key_type,
+			       &attestedKey, &params_t);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	if (app_id != NULL && app_data != NULL) {
-		res = TA_check_permission(&params_t, *app_id, *app_data, &exportable);
-		if (res != KM_ERROR_OK)
+		error = TA_check_permission(&params_t, *app_id, *app_data, &exportable);
+		if (error != KM_ERROR_OK)
 			goto exit;
 	}
 
@@ -1021,12 +1022,12 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 		EMSG("Key attestation supports only asymmetric key pairs, "
 		     "type=%x",
 		     key_type);
-		res = KM_ERROR_INCOMPATIBLE_ALGORITHM;
+		error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
 		goto exit;
 	}
 
-	res = TA_fill_characteristics(&key_chr, &params_t, &key_chr_size);
-	if (res != KM_ERROR_OK)
+	error = TA_fill_characteristics(&key_chr, &params_t, &key_chr_size);
+	if (error != KM_ERROR_OK)
 		goto exit;
 
 	if (includeUniqueID == true) {
@@ -1038,9 +1039,9 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	 * Read Root attestation certificate (must be generated and stored
 	 * before)
 	 */
-	res = TA_read_root_attest_cert(key_type, &cert_chain);
-	if (res != KM_ERROR_INSUFFICIENT_BUFFER_SPACE) {
-		EMSG("Failed to get att cert chain len, res=%x", res);
+	error = TA_read_root_attest_cert(key_type, &cert_chain);
+	if (error != KM_ERROR_INSUFFICIENT_BUFFER_SPACE) {
+		EMSG("Failed to get att cert chain len, error=%x", error);
 		goto exit;
 	}
 
@@ -1049,7 +1050,7 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 					TEE_MALLOC_FILL_ZERO);
 	if (!cert_chain.entries) {
 		EMSG("Failed to allocate memory for chain of certificates");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto exit;
 	}
 
@@ -1057,41 +1058,41 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	 * Read Root attestation certificate (must be generated and stored
 	 * before)
 	 */
-	res = TA_read_root_attest_cert(key_type, &cert_chain);
-	if (res != KM_ERROR_OK) {
-		EMSG("Failed to read root att cert, res=%x", res);
+	error = TA_read_root_attest_cert(key_type, &cert_chain);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to read root att cert, error=%x", error);
 		goto exit;
 	}
 	/* Generate key attestation certificate (using STA ASN.1) */
-	result = TA_gen_key_attest_cert(key_type, attestedKey, &attest_params, &key_chr,
-					&cert_chain, verified_boot_state,
-					includeUniqueID);
-	if (result != TEE_SUCCESS) {
-		EMSG("Failed to gen key att cert, res=%x", result);
-		res = KM_ERROR_UNKNOWN_ERROR;
+	res = TA_gen_key_attest_cert(key_type, attestedKey, &attest_params, &key_chr,
+				     &cert_chain, verified_boot_state,
+				     includeUniqueID);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to gen key att cert, res=%x", res);
+		error = KM_ERROR_UNKNOWN_ERROR;
 		goto exit;
 	}
 
 	/* Check output buffer length */
 	if (TA_cert_chain_size(&cert_chain) > out_size) {
 		EMSG("Short output buffer for chain of certificates");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		goto exit;
 	}
 
 exit:
 	/* Serialize output chain of certificates */
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
-		out += TA_serialize_cert_chain_akms(out, out_end, &cert_chain, &res,
+	if (error == KM_ERROR_OK) {
+		out += TA_serialize_cert_chain_akms(out, out_end, &cert_chain, &error,
 						    &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto out;
 		}
 	}
@@ -1114,7 +1115,7 @@ out:
 	TA_free_params(&params_t);
 	TA_free_cert_chain(&cert_chain);
 
-	return res;
+	return error;
 }
 
 static keymaster_error_t TA_upgradeKey(TEE_Param params[TEE_NUM_PARAMS])
@@ -1127,7 +1128,7 @@ static keymaster_error_t TA_upgradeKey(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_key_blob_t key_to_upgrade = EMPTY_KEY_BLOB; /* IN */
 	keymaster_key_param_set_t upgr_params = EMPTY_PARAM_SET; /* IN */
 	keymaster_key_blob_t upgraded_key = EMPTY_KEY_BLOB; /* OUT */
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1138,26 +1139,26 @@ static keymaster_error_t TA_upgradeKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_upgrade, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_upgrade, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_auth_set(in, in_end, &upgr_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &upgr_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 	TA_add_origin(&upgr_params, KM_ORIGIN_UNKNOWN, false);
 
 out:
 	/* TODO Upgrade Key */
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_key_blob_akms(out, out_end, &upgraded_key, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 	}
@@ -1168,7 +1169,7 @@ exit:
 	TA_free_params(&upgr_params);
 	if (key_to_upgrade.key_material)
 		TEE_Free(key_to_upgrade.key_material);
-	return res;
+	return error;
 }
 
 /* Deletes the provided key */
@@ -1177,7 +1178,7 @@ static keymaster_error_t TA_deleteKey(TEE_Param params[TEE_NUM_PARAMS])
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1186,14 +1187,14 @@ static keymaster_error_t TA_deleteKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
-	return res;
+	return error;
 }
 
 /* Deletes all keys */
@@ -1202,7 +1203,7 @@ static keymaster_error_t TA_deleteAllKeys(TEE_Param params[TEE_NUM_PARAMS])
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1211,14 +1212,14 @@ static keymaster_error_t TA_deleteAllKeys(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
-	return res;
+	return error;
 }
 
 /* Permanently disable the ID attestation feature */
@@ -1227,7 +1228,7 @@ static keymaster_error_t TA_destroyAttestationIds(TEE_Param params[TEE_NUM_PARAM
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1236,13 +1237,13 @@ static keymaster_error_t TA_destroyAttestationIds(TEE_Param params[TEE_NUM_PARAM
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
-	return res;
+	return error;
 }
 
 /*
@@ -1273,7 +1274,7 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_operation_handle_t operation_handle = 0; /* OUT */
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	keymaster_key_param_t *nonce_param = NULL;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_algorithm_t algorithm = UNDEFINED;
 	keymaster_blob_t nonce = EMPTY_BLOB;
 	keymaster_digest_t digest = UNDEFINED;
@@ -1297,34 +1298,34 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	operation = TEE_Malloc(sizeof(TEE_OperationHandle), TEE_MALLOC_FILL_ZERO);
 	if (!operation) {
 		EMSG("Failed to allocate memory for operation");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 	/* Freed when operation is aborted (TA_abort_operation) */
 	digest_op = TEE_Malloc(sizeof(TEE_OperationHandle), TEE_MALLOC_FILL_ZERO);
 	if (!digest_op) {
 		EMSG("Failed to allocate memory for digest operation");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 	*operation = TEE_HANDLE_NULL;
 	*digest_op = TEE_HANDLE_NULL;
 
-	in += TA_deserialize_purpose(in, in_end, &purpose, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_purpose(in, in_end, &purpose, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_key_blob_akms(in, in_end, &key, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_key_blob_akms(in, in_end, &key, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 	key_material = TEE_Malloc(key.key_material_size, TEE_MALLOC_FILL_ZERO);
 
 	memcpy(key_id, key.key_material + key.key_material_size - TAG_LENGTH, TAG_LENGTH);
 
-	res = TA_restore_key(key_material, &key, &key_size, &type, &obj_h, &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, &key, &key_size, &type, &obj_h, &params_t);
+	if (error != KM_ERROR_OK)
 		goto out;
 	switch (type) {
 	case TEE_TYPE_AES:
@@ -1339,9 +1340,9 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	default: /* HMAC */
 		algorithm = KM_ALGORITHM_HMAC;
 	}
-	res = TA_check_params(&params_t, &in_params, &algorithm, purpose, &digest, &mode,
-			      &padding, &mac_length, &nonce, &min_sec, &do_auth, key_id);
-	if (res != KM_ERROR_OK)
+	error = TA_check_params(&params_t, &in_params, &algorithm, purpose, &digest, &mode,
+				&padding, &mac_length, &nonce, &min_sec, &do_auth, key_id);
+	if (error != KM_ERROR_OK)
 		goto out;
 	if (algorithm == KM_ALGORITHM_AES && mode != KM_MODE_ECB &&
 	    nonce.data_length == 0) {
@@ -1354,14 +1355,14 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 		secretIV = TEE_Malloc(IVsize, TEE_MALLOC_FILL_ZERO);
 		if (!secretIV) {
 			EMSG("Failed to allocate memory for secretIV");
-			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+			error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			goto out;
 		}
 		nonce_param = TEE_Malloc(sizeof(keymaster_key_param_t), TEE_MALLOC_FILL_ZERO);
 		if (!nonce_param) {
 			TEE_Free(secretIV);
 			EMSG("Failed to allocate memory for parameters");
-			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+			error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			goto out;
 		}
 		TEE_GenerateRandom(secretIV, IVsize);
@@ -1373,34 +1374,34 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 		nonce.data = secretIV;
 	}
 
-	res = TA_create_operation(operation, obj_h, purpose, algorithm, key_size, nonce,
-				  digest, mode, padding, mac_length);
-	if (res != KM_ERROR_OK)
+	error = TA_create_operation(operation, obj_h, purpose, algorithm, key_size, nonce,
+				    digest, mode, padding, mac_length);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	TEE_GenerateRandom(&operation_handle, sizeof(operation_handle));
 	if (purpose == KM_PURPOSE_SIGN || purpose == KM_PURPOSE_VERIFY ||
 	    (algorithm == KM_ALGORITHM_RSA && padding == KM_PAD_RSA_PSS)) {
-		res = TA_create_digest_op(digest_op, digest);
-		if (res != KM_ERROR_OK)
+		error = TA_create_digest_op(digest_op, digest);
+		if (error != KM_ERROR_OK)
 			goto out;
 	}
-	res = TA_start_operation(operation_handle, key, min_sec, operation, purpose,
-				 digest_op, do_auth, padding, mode, mac_length, digest,
-				 nonce, key_id);
-	if (res != KM_ERROR_OK)
+	error = TA_start_operation(operation_handle, key, min_sec, operation, purpose,
+				   digest_op, do_auth, padding, mode, mac_length, digest,
+				   nonce, key_id);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		if (TA_is_out_of_bounds(out, out_end, sizeof(operation_handle))) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		TEE_MemMove(out, &operation_handle, sizeof(operation_handle));
@@ -1408,7 +1409,7 @@ out:
 		out += TA_serialize_auth_set(out, out_end, &out_params, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 	}
@@ -1420,7 +1421,7 @@ exit:
 		TEE_FreeTransientObject(obj_h);
 	if (key.key_material)
 		TEE_Free(key.key_material);
-	if (res != KM_ERROR_OK) {
+	if (error != KM_ERROR_OK) {
 		if (*digest_op != TEE_HANDLE_NULL)
 			TEE_FreeOperation(*digest_op);
 		if (*operation != TEE_HANDLE_NULL)
@@ -1433,7 +1434,7 @@ exit:
 	TA_free_params(&in_params);
 	TA_free_params(&params_t);
 	TA_free_params(&out_params);
-	return res;
+	return error;
 }
 
 /* Provides data to process in an ongoing operation started with begin */
@@ -1455,7 +1456,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	uint32_t type = 0;
 	uint32_t keyblob_out_size = 0;
 	uint32_t input_provided = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
@@ -1470,33 +1471,33 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	/* don't allocate memory, reference to in */
 	input_allocate_memory = false;
-	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res,
+	in += TA_deserialize_blob_akms(in, in_end, &input, false, &error,
 				       input_allocate_memory);
-	if (res != KM_ERROR_OK)
+	if (error != KM_ERROR_OK)
 		goto out;
 
-	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	input_provided = input.data_length;
-	res = TA_get_operation(operation_handle, &operation);
-	if (res != KM_ERROR_OK)
+	error = TA_get_operation(operation_handle, &operation);
+	if (error != KM_ERROR_OK)
 		goto out;
 	key_material = TEE_Malloc(operation->key->key_material_size, TEE_MALLOC_FILL_ZERO);
-	res = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
-			     &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
+			       &params_t);
+	if (error != KM_ERROR_OK)
 		goto out;
 	if (operation->do_auth) {
-		res = TA_do_auth(in_params, params_t);
-		if (res != KM_ERROR_OK) {
+		error = TA_do_auth(in_params, params_t);
+		if (error != KM_ERROR_OK) {
 			EMSG("Authentication failed");
 			goto out;
 		}
@@ -1508,47 +1509,47 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	output.data = TEE_Malloc(keyblob_out_size, TEE_MALLOC_FILL_ZERO);
 	if (!output.data) {
 		EMSG("Failed to allocate memory for output");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 	switch (type) {
 	case TEE_TYPE_AES:
-		res = TA_aes_update(operation, &input, &output, &keyblob_out_size,
-				    input_provided, &input_consumed, &in_params);
+		error = TA_aes_update(operation, &input, &output, &keyblob_out_size,
+				      input_provided, &input_consumed, &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
-		res = TA_rsa_update(operation, &input, &output, &keyblob_out_size,
-				    key_size, &input_consumed, input_provided, obj_h);
+		error = TA_rsa_update(operation, &input, &output, &keyblob_out_size,
+				      key_size, &input_consumed, input_provided, obj_h);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
-		res = TA_ec_update(operation, &input, &output, &input_consumed,
-				   input_provided);
+		error = TA_ec_update(operation, &input, &output, &input_consumed,
+				     input_provided);
 		break;
 	default: /* HMAC */
 		TEE_MACUpdate(*operation->operation, input.data, input.data_length);
 		input_consumed = input_provided;
 	}
-	if (res != KM_ERROR_OK) {
-		EMSG("Update operation failed with error code %x", res);
+	if (error != KM_ERROR_OK) {
+		EMSG("Update operation failed with error code %x", error);
 		goto out;
 	}
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_blob_akms(out, out_end, &output, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		if (TA_is_out_of_bounds(out, out_end, SIZE_LENGTH_AKMS)) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		TEE_MemMove(out, &input_consumed, SIZE_LENGTH_AKMS);
@@ -1556,7 +1557,7 @@ out:
 		out += TA_serialize_auth_set(out, out_end, &out_params, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		TA_update_operation(operation_handle, operation);
@@ -1573,12 +1574,12 @@ exit:
 		TEE_FreeTransientObject(obj_h);
 	if (key_material)
 		TEE_Free(key_material);
-	if (res != KM_ERROR_OK)
+	if (error != KM_ERROR_OK)
 		TA_abort_operation(operation_handle);
 	TA_free_params(&params_t);
 	TA_free_params(&in_params);
 	TA_free_params(&out_params);
-	return res;
+	return error;
 }
 
 /*
@@ -1603,11 +1604,12 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	uint32_t type = 0;
 	uint32_t keyblob_out_size = 0;
 	uint32_t tag_len = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
 	keymaster_operation_t *operation;
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	bool input_allocate_memory;
+	TEE_Result res = TEE_SUCCESS;
 	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
@@ -1618,35 +1620,35 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_blob_akms(in, in_end, &signature, false, &res, true);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_blob_akms(in, in_end, &signature, false, &error, true);
+	if (error != KM_ERROR_OK)
 		goto out;
-	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
 
 	/* don't allocate memory, reference to in */
 	input_allocate_memory = false;
-	in += TA_deserialize_blob_akms(in, in_end, &input, false, &res,
+	in += TA_deserialize_blob_akms(in, in_end, &input, false, &error,
 				       input_allocate_memory);
-	if (res != KM_ERROR_OK)
+	if (error != KM_ERROR_OK)
 		goto out;
 
-	res = TA_get_operation(operation_handle, &operation);
-	if (res != KM_ERROR_OK)
+	error = TA_get_operation(operation_handle, &operation);
+	if (error != KM_ERROR_OK)
 		goto out;
 	key_material = TEE_Malloc(operation->key->key_material_size,
 				  TEE_MALLOC_FILL_ZERO);
-	res = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
-			     &params_t);
-	if (res != KM_ERROR_OK)
+	error = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
+			       &params_t);
+	if (error != KM_ERROR_OK)
 		goto out;
 	if (operation->do_auth) {
-		res = TA_do_auth(in_params, params_t);
-		if (res != KM_ERROR_OK) {
+		error = TA_do_auth(in_params, params_t);
+		if (error != KM_ERROR_OK) {
 			EMSG("Authentication failed");
 			goto out;
 		}
@@ -1658,21 +1660,21 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	output.data = TEE_Malloc(keyblob_out_size, TEE_MALLOC_FILL_ZERO);
 	if (!output.data) {
 		EMSG("Failed to allocate memory for output");
-		res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		goto out;
 	}
 	switch (type) {
 	case TEE_TYPE_AES:
-		res = TA_aes_finish(operation, &input, &output, &keyblob_out_size,
-				    tag_len, &in_params);
+		error = TA_aes_finish(operation, &input, &output, &keyblob_out_size,
+				      tag_len, &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
-		res = TA_rsa_finish(operation, &input, &output, &keyblob_out_size,
-				    key_size, signature, obj_h, &input_allocate_memory);
+		error = TA_rsa_finish(operation, &input, &output, &keyblob_out_size,
+				      key_size, signature, obj_h, &input_allocate_memory);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
-		res = TA_ec_finish(operation, &input, &output, &signature,
-				   &keyblob_out_size, key_size, &input_allocate_memory);
+		error = TA_ec_finish(operation, &input, &output, &signature,
+				     &keyblob_out_size, key_size, &input_allocate_memory);
 		break;
 	default: /* HMAC */
 		if (operation->purpose == KM_PURPOSE_SIGN) {
@@ -1694,7 +1696,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 			keyblob_out_size = 0;
 			/* Convert error code to Android style */
 			if (res == (int)TEE_ERROR_MAC_INVALID)
-				res = KM_ERROR_VERIFICATION_FAILED;
+				error = KM_ERROR_VERIFICATION_FAILED;
 		}
 	}
 	if (res != TEE_SUCCESS) {
@@ -1704,22 +1706,22 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	output.data_length = keyblob_out_size;
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	if (res == KM_ERROR_OK) {
+	if (error == KM_ERROR_OK) {
 		out += TA_serialize_blob_akms(out, out_end, &output, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 		out += TA_serialize_auth_set(out, out_end, &out_params, &oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
-			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			goto exit;
 		}
 	}
@@ -1741,7 +1743,7 @@ exit:
 	TA_free_params(&params_t);
 	TA_free_params(&in_params);
 	TA_free_params(&out_params);
-	return res;
+	return error;
 }
 
 /* Aborts the in-progress operation */
@@ -1752,7 +1754,7 @@ static keymaster_error_t TA_abort(TEE_Param params[TEE_NUM_PARAMS])
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
-	keymaster_error_t res = KM_ERROR_OK;
+	keymaster_error_t error = KM_ERROR_OK;
 	keymaster_operation_handle_t operation_handle = 0; /* IN */
 	bool oob = false; /* out of bounds flag */
 
@@ -1764,19 +1766,19 @@ static keymaster_error_t TA_abort(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
-	if (res != KM_ERROR_OK)
+	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &error);
+	if (error != KM_ERROR_OK)
 		goto out;
-	res = TA_abort_operation(operation_handle);
+	error = TA_abort_operation(operation_handle);
 
 out:
-	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
-		res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
-	return res;
+	return error;
 }
 
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
