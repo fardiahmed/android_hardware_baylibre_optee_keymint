@@ -189,7 +189,7 @@ const char* keymaster_error_message(uint32_t error) {
 keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serializable& req,
                                        keymaster::KeymasterResponse* rsp) {
     TEEC_Operation op;
-    uint32_t res;
+    TEEC_Result res;
     uint32_t err_origin;
 
     if (!connected) {
@@ -222,13 +222,15 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
 
     res = TEEC_InvokeCommand(&sess, command, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
-        ALOGI("TEEC_InvokeCommand command %d failed with code 0x%08x (%s) origin "
-              "0x%08x",
-              command, res, keymaster_error_message(res), err_origin);
+        ALOGE("TEEC_InvokeCommand command %d failed with code 0x%08x origin 0x%08x",
+              command, res, err_origin);
         if (res == TEEC_ERROR_TARGET_DEAD) {
             optee_keymaster_disconnect();
             optee_keymaster_connect();
+            return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
         }
+
+        return KM_ERROR_UNKNOWN_ERROR;
     }
 
     const uint8_t* p = recv_buf;
@@ -236,20 +238,7 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
         ALOGE("Error deserializing response of size %d\n", (int)rsp_size);
         return KM_ERROR_UNKNOWN_ERROR;
     } else if (rsp->error != KM_ERROR_OK) {
-        ALOGE("Response of size %d contained error code %d\n", (int)rsp_size, (int)rsp->error);
-    } else if (res != KM_ERROR_OK) {
-        /*
-         * rsp->error is KM_ERROR_OK but res isn't? This happens when:
-         * 1. param_types != exp_param_types in TA_InvokeCommandEntryPoint()
-         * 2. req or rsp (in or out bufptr in keystore_ta.c) are NULL
-         *    so res can't be serialized into rsp
-         * 3. rsp_size (out_size) != OPTEE_KEYMASTER_RECV_BUF_SIZE
-         *    (KM_RECV_BUF_SIZE) in keystore_ta.c
-         * 4. error writing past the end of recv_buf, i.e. writing past out_end
-         *    in keystore_ta.c
-         */
-        ALOGE("Response of size %d contained error code %d\n", (int)rsp_size, (int)res);
-        return (keymaster_error_t)res;
+        ALOGW("Response contained error code: %s\n", keymaster_error_message(rsp->error));
     }
 
     return rsp->error;
