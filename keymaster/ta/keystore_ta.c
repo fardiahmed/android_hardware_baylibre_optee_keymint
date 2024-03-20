@@ -78,6 +78,15 @@ static TEE_Result TA_errorRsp(TEE_Param params[TEE_NUM_PARAMS], keymaster_error_
 	return TEE_SUCCESS;
 }
 
+static keymaster_error_t TA_stubOperation(TEE_Param params[TEE_NUM_PARAMS])
+{
+	DMSG("Stub operation");
+
+	params[1].memref.size = sizeof(keymaster_error_t);
+
+	return KM_ERROR_OK;
+}
+
 static keymaster_error_t TA_unimplementedOperation(TEE_Param params[TEE_NUM_PARAMS])
 {
 	DMSG("Unimplemented operation");
@@ -1154,51 +1163,6 @@ exit:
 	return error;
 }
 
-/* Deletes the provided key */
-static keymaster_error_t TA_deleteKey(TEE_Param params[TEE_NUM_PARAMS])
-{
-	uint8_t *out = NULL;
-
-	DMSG("%s %d", __func__, __LINE__);
-
-	out = (uint8_t *)params[1].memref.buffer;
-	out += sizeof(keymaster_error_t);
-
-	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
-
-	return KM_ERROR_OK;
-}
-
-/* Deletes all keys */
-static keymaster_error_t TA_deleteAllKeys(TEE_Param params[TEE_NUM_PARAMS])
-{
-	uint8_t *out = NULL;
-
-	DMSG("%s %d", __func__, __LINE__);
-
-	out = (uint8_t *)params[1].memref.buffer;
-	out += sizeof(keymaster_error_t);
-
-	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
-
-	return KM_ERROR_OK;
-}
-
-/* Permanently disable the ID attestation feature */
-static keymaster_error_t TA_destroyAttestationIds(TEE_Param params[TEE_NUM_PARAMS])
-{
-	uint8_t *out = NULL;
-
-	DMSG("%s %d", __func__, __LINE__);
-
-	out = (uint8_t *)params[1].memref.buffer;
-	out += sizeof(keymaster_error_t);
-
-	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
-
-	return KM_ERROR_OK;
-}
-
 /*
  * Begins a cryptographic operation, using the specified key, for the specified
  * purpose, with the specified parameters (as appropriate), and returns an
@@ -1788,15 +1752,15 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		break;
 	case KM_DELETE_KEY:
 		DMSG("KM_DELETE_KEY");
-		error = TA_deleteKey(params);
+		error = TA_stubOperation(params);
 		break;
 	case KM_DELETE_ALL_KEYS:
 		DMSG("KM_DELETE_ALL_KEYS");
-		error = TA_deleteAllKeys(params);
+		error = TA_stubOperation(params);
 		break;
 	case KM_DESTROY_ATTESTATION_IDS:
 		DMSG("KM_DESTROY_ATTESTATION_IDS");
-		error = TA_destroyAttestationIds(params);
+		error = TA_stubOperation(params);
 		break;
 	case KM_GET_SUPPORTED_ALGORITHMS:
 	case KM_GET_SUPPORTED_BLOCK_MODES:
