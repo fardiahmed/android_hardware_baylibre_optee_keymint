@@ -27,8 +27,6 @@
 /* Right shift of number stored as big endian
  * Short means that max bits to shift is 8
  */
-void TA_short_be_rshift(uint8_t *data,
-			const uint32_t data_l,
-			const uint32_t shift);
+void TA_short_be_rshift(uint8_t *data, const uint32_t data_l, const uint32_t shift);
 
-#endif/*ANDROID_OPTEE_SHIFT_H*/
+#endif /*ANDROID_OPTEE_SHIFT_H*/

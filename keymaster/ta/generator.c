@@ -17,7 +17,7 @@
 
 #include "generator.h"
 
-uint32_t attributes_aes_hmac[KM_ATTR_COUNT_AES_HMAC] = {TEE_ATTR_SECRET_VALUE};
+uint32_t attributes_aes_hmac[KM_ATTR_COUNT_AES_HMAC] = { TEE_ATTR_SECRET_VALUE };
 uint32_t attributes_rsa[KM_ATTR_COUNT_RSA] = {
 						TEE_ATTR_RSA_MODULUS,
 						TEE_ATTR_RSA_PUBLIC_EXPONENT,
@@ -38,7 +38,7 @@ uint32_t attributes_ec_short[KM_ATTR_COUNT_EC - 1] = {
 						TEE_ATTR_ECC_PUBLIC_VALUE_Y};
 
 uint32_t *TA_get_attrs_list_short(const keymaster_algorithm_t algorithm,
-						const bool short_list)
+				  const bool short_list)
 {
 	switch (algorithm) {
 	case KM_ALGORITHM_EC:
@@ -65,22 +65,20 @@ uint32_t TA_get_key_size(const keymaster_algorithm_t algorithm)
 		 * attribute data size) + size of algorithm + size of key size
 		 */
 		return KM_ATTR_COUNT_AES_HMAC *
-			(2 * sizeof(uint32_t) + KM_AES_ATTR_SIZE)
-			+ sizeof(algorithm) + sizeof(uint32_t);
+			       (2 * sizeof(uint32_t) + KM_AES_ATTR_SIZE) +
+		       sizeof(algorithm) + sizeof(uint32_t);
 	case KM_ALGORITHM_HMAC:
 		/* Maximal HMAC key size 128 bytes */
 		return KM_ATTR_COUNT_AES_HMAC *
-			(2 * sizeof(uint32_t) + KM_HMAC_ATTR_SIZE)
-			+ sizeof(algorithm) + sizeof(uint32_t);
+			       (2 * sizeof(uint32_t) + KM_HMAC_ATTR_SIZE) +
+		       sizeof(algorithm) + sizeof(uint32_t);
 	case KM_ALGORITHM_RSA:
 		/* RSA  attributes for key size 2048 bits has size 256 bytes */
-		return KM_ATTR_COUNT_RSA * (2 * sizeof(uint32_t) +
-			KM_RSA_ATTR_SIZE) + sizeof(algorithm) +
-			sizeof(uint32_t);
+		return KM_ATTR_COUNT_RSA * (2 * sizeof(uint32_t) + KM_RSA_ATTR_SIZE) +
+		       sizeof(algorithm) + sizeof(uint32_t);
 	case KM_ALGORITHM_EC:
-		return KM_ATTR_COUNT_EC * (2 * sizeof(uint32_t) +
-			KM_EC_ATTR_SIZE) +
-			sizeof(algorithm) + sizeof(uint32_t);
+		return KM_ATTR_COUNT_EC * (2 * sizeof(uint32_t) + KM_EC_ATTR_SIZE) +
+		       sizeof(algorithm) + sizeof(uint32_t);
 	default:
 		return 0;
 	}
@@ -91,7 +89,8 @@ void free_attrs(TEE_Attribute *attrs, uint32_t size)
 	if (!attrs)
 		return;
 	for (uint32_t i = 0; i < size; i++) {
-		if ((!is_attr_value(attrs[i].attributeID)) && (attrs[i].content.ref.buffer != NULL))
+		if ((!is_attr_value(attrs[i].attributeID)) &&
+		    (attrs[i].content.ref.buffer != NULL))
 			(void)TEE_Free(attrs[i].content.ref.buffer);
 	}
 	(void)TEE_Free(attrs);
@@ -123,9 +122,8 @@ bool is_attr_value(const uint32_t tag)
 	return tag & mask;
 }
 
-keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data,
-				uint32_t *key_size,
-				const keymaster_digest_t digest)
+keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data, uint32_t *key_size,
+					 const keymaster_digest_t digest)
 {
 	uint32_t min = 0;
 	uint32_t max = 0;
@@ -174,11 +172,8 @@ keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data,
 		res = TA_create_digest_op(&digest_op, digest);
 		if (res != KM_ERROR_OK)
 			return res;
-		res = TEE_DigestDoFinal(digest_op,
-				key_data->data,
-				key_data->data_length,
-				digest_out,
-				&digest_out_size);
+		res = TEE_DigestDoFinal(digest_op, key_data->data, key_data->data_length,
+					digest_out, &digest_out_size);
 		if (res != KM_ERROR_OK) {
 			EMSG("Failed to hash HMAC key");
 			return res;
@@ -204,15 +199,13 @@ keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data,
 }
 
 keymaster_error_t TA_import_key(const keymaster_algorithm_t algorithm,
-				const uint32_t key_size,
-				uint8_t *key_material,
+				const uint32_t key_size, uint8_t *key_material,
 				const keymaster_digest_t digest,
 				const TEE_Attribute *attrs_in,
 				const uint32_t attrs_in_count)
 {
 	uint32_t type;
 	uint32_t padding = 0;
-
 
 	switch (algorithm) {
 	case KM_ALGORITHM_AES:
@@ -257,27 +250,25 @@ keymaster_error_t TA_import_key(const keymaster_algorithm_t algorithm,
 	padding += sizeof(key_size);
 	for (uint32_t i = 0; i < attrs_in_count; i++) {
 		TEE_MemMove(key_material + padding, &attrs_in[i].attributeID,
-					sizeof(attrs_in[i].attributeID));
+			    sizeof(attrs_in[i].attributeID));
 		padding += sizeof(attrs_in[i].attributeID);
 		if (is_attr_value(attrs_in[i].attributeID)) {
 			/* value */
-			TEE_MemMove(key_material + padding,
-					&attrs_in[i].content.value.a,
-					sizeof(attrs_in[i].content.value.a));
+			TEE_MemMove(key_material + padding, &attrs_in[i].content.value.a,
+				    sizeof(attrs_in[i].content.value.a));
 			padding += sizeof(attrs_in[i].content.value.a);
-			TEE_MemMove(key_material + padding,
-					&attrs_in[i].content.value.b,
-					sizeof(attrs_in[i].content.value.b));
+			TEE_MemMove(key_material + padding, &attrs_in[i].content.value.b,
+				    sizeof(attrs_in[i].content.value.b));
 			padding += sizeof(attrs_in[i].content.value.b);
 		} else {
 			/* buffer */
 			TEE_MemMove(key_material + padding,
-					&attrs_in[i].content.ref.length,
-					sizeof(attrs_in[i].content.ref.length));
+				    &attrs_in[i].content.ref.length,
+				    sizeof(attrs_in[i].content.ref.length));
 			padding += sizeof(attrs_in[i].content.ref.length);
 			TEE_MemMove(key_material + padding,
-					attrs_in[i].content.ref.buffer,
-					attrs_in[i].content.ref.length);
+				    attrs_in[i].content.ref.buffer,
+				    attrs_in[i].content.ref.length);
 			padding += attrs_in[i].content.ref.length;
 		}
 	}
@@ -303,10 +294,9 @@ uint32_t TA_get_curve_nist(const uint32_t key_size)
 }
 
 keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
-					const uint32_t key_size,
-					uint8_t *key_material,
-					const keymaster_digest_t digest,
-					const uint64_t rsa_public_exponent)
+				  const uint32_t key_size, uint8_t *key_material,
+				  const keymaster_digest_t digest,
+				  const uint64_t rsa_public_exponent)
 {
 	TEE_ObjectHandle obj_h = TEE_HANDLE_NULL;
 	TEE_Result res = TEE_SUCCESS;
@@ -360,16 +350,14 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 		attributes = attributes_rsa;
 		attr_count = KM_ATTR_COUNT_RSA;
 		type = TEE_TYPE_RSA_KEYPAIR;
-		attrs_in = TEE_Malloc(sizeof(TEE_Attribute),
-							TEE_MALLOC_FILL_ZERO);
+		attrs_in = TEE_Malloc(sizeof(TEE_Attribute), TEE_MALLOC_FILL_ZERO);
 		if (!attrs_in) {
 			EMSG("Failed to allocate memory for attributes");
 			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			goto gk_out;
 		}
 		attrs_in_count = 1;
-		buf_pe = TEE_Malloc(sizeof(rsa_public_exponent),
-							TEE_MALLOC_FILL_ZERO);
+		buf_pe = TEE_Malloc(sizeof(rsa_public_exponent), TEE_MALLOC_FILL_ZERO);
 		if (!buf_pe) {
 			EMSG("Failed to allocate memory for public exponent");
 			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -377,17 +365,14 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 		}
 		be_pe = TEE_U64_TO_BIG_ENDIAN(rsa_public_exponent);
 		TEE_MemMove(buf_pe, &be_pe, sizeof(rsa_public_exponent));
-		TEE_InitRefAttribute(attrs_in,
-					TEE_ATTR_RSA_PUBLIC_EXPONENT,
-					(void *) buf_pe,
-					sizeof(rsa_public_exponent));
+		TEE_InitRefAttribute(attrs_in, TEE_ATTR_RSA_PUBLIC_EXPONENT,
+				     (void *)buf_pe, sizeof(rsa_public_exponent));
 		break;
 	case KM_ALGORITHM_EC:
 		attributes = attributes_ec;
 		attr_count = KM_ATTR_COUNT_EC;
 		type = TEE_TYPE_ECDSA_KEYPAIR;
-		attrs_in = TEE_Malloc(sizeof(TEE_Attribute),
-							TEE_MALLOC_FILL_ZERO);
+		attrs_in = TEE_Malloc(sizeof(TEE_Attribute), TEE_MALLOC_FILL_ZERO);
 		if (!attrs_in) {
 			EMSG("Failed to allocate memory for attributes");
 			res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -400,9 +385,7 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 			res = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto gk_out;
 		}
-		TEE_InitValueAttribute(attrs_in,
-				TEE_ATTR_ECC_CURVE,
-				curve, 0);
+		TEE_InitValueAttribute(attrs_in, TEE_ATTR_ECC_CURVE, curve, 0);
 		break;
 	default:
 		return KM_ERROR_UNSUPPORTED_ALGORITHM;
@@ -412,8 +395,8 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 		EMSG("Failed to allocate transient object, res=%x", res);
 		goto gk_out;
 	}
-	DMSG("key_size = %u, sizeof(attrs_in) = %zu, attrs_in_count = %u",
-			key_size, sizeof(attrs_in), attrs_in_count);
+	DMSG("key_size = %u, sizeof(attrs_in) = %zu, attrs_in_count = %u", key_size,
+	     sizeof(attrs_in), attrs_in_count);
 	res = TEE_GenerateKey(obj_h, key_size, attrs_in, attrs_in_count);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to generate key via TEE_GenerateKey, res = %x", res);
@@ -432,13 +415,12 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 	for (uint32_t i = 0; i < attr_count; i++) {
 		attr_size = KM_MAX_ATTR_SIZE;
 		TEE_MemMove(key_material + padding, attributes + i,
-						sizeof(attributes[i]));
+			    sizeof(attributes[i]));
 		padding += sizeof(attributes[i]);
 		DMSG("i = %u padding = %u", i, padding);
 		if (is_attr_value(attributes[i])) {
 			/* value */
-			res = TEE_GetObjectValueAttribute(obj_h,
-						attributes[i], &a, &b);
+			res = TEE_GetObjectValueAttribute(obj_h, attributes[i], &a, &b);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to get value attribute, res = %x", res);
 				break;
@@ -451,15 +433,15 @@ keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
 			DMSG("i = %u padding = %u b = %u", i, padding, b);
 		} else {
 			/* buffer */
-			res = TEE_GetObjectBufferAttribute(obj_h,
-					attributes[i], buffer, &attr_size);
+			res = TEE_GetObjectBufferAttribute(obj_h, attributes[i], buffer,
+							   &attr_size);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to get buffer attribute %x, res = %x",
-								attributes[i], res);
+				     attributes[i], res);
 				break;
 			}
-			TEE_MemMove(key_material + padding,
-					&attr_size, sizeof(attr_size));
+			TEE_MemMove(key_material + padding, &attr_size,
+				    sizeof(attr_size));
 			padding += sizeof(attr_size);
 			DMSG("i = %u padding = %u attr_size = %u", i, padding, attr_size);
 			TEE_MemMove(key_material + padding, buffer, attr_size);
@@ -475,8 +457,8 @@ gk_out:
 	return res;
 }
 
-TEE_Result TA_write_obj_attr(TEE_ObjectHandle attObj,
-			     const uint8_t *buffer, const uint32_t buffSize)
+TEE_Result TA_write_obj_attr(TEE_ObjectHandle attObj, const uint8_t *buffer,
+			     const uint32_t buffSize)
 {
 	TEE_Result res = TEE_SUCCESS;
 	//Store attest object in format: size | buffer attribute
@@ -540,8 +522,7 @@ keymaster_error_t TA_check_hmac_key(const uint32_t type, uint32_t *key_size)
 	return KM_ERROR_OK;
 }
 
-keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
-					tee_key_attributes *att)
+keymaster_error_t TA_populate_key_attrs(uint8_t *key_material, tee_key_attributes *att)
 {
 	uint32_t padding = 0;
 	uint32_t tag;
@@ -555,26 +536,22 @@ keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
 	case TEE_TYPE_AES:
 		att->attrs_count = KM_ATTR_COUNT_AES_HMAC;
 		att->alg = KM_ALGORITHM_AES;
-		DMSG("AES attrs_count = %u algorithm = %d",
-		     att->attrs_count, att->alg);
+		DMSG("AES attrs_count = %u algorithm = %d", att->attrs_count, att->alg);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
 		att->attrs_count = KM_ATTR_COUNT_RSA;
 		att->alg = KM_ALGORITHM_RSA;
-		DMSG("RSA attrs_count = %u algorithm = %d",
-		     att->attrs_count, att->alg);
+		DMSG("RSA attrs_count = %u algorithm = %d", att->attrs_count, att->alg);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
 		att->attrs_count = KM_ATTR_COUNT_EC;
 		att->alg = KM_ALGORITHM_EC;
-		DMSG("EC attrs_count = %u algorithm = %d",
-		     att->attrs_count, att->alg);
+		DMSG("EC attrs_count = %u algorithm = %d", att->attrs_count, att->alg);
 		break;
 	default: /* HMAC */
 		att->attrs_count = KM_ATTR_COUNT_AES_HMAC;
 		att->alg = KM_ALGORITHM_HMAC;
-		DMSG("HMAC attrs_count = %u algorithm = %d",
-		     att->attrs_count, att->alg);
+		DMSG("HMAC attrs_count = %u algorithm = %d", att->attrs_count, att->alg);
 	}
 	att->attrs = TEE_Malloc(att->attrs_count * sizeof(TEE_Attribute),
 				TEE_MALLOC_FILL_ZERO);
@@ -585,8 +562,8 @@ keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
 
 	TEE_MemMove(&att->size, key_material + padding, sizeof(att->size));
 	padding += sizeof(att->size);
-	DMSG("*key_size = %u attrs_count = %u padding = %u",
-	     att->size, att->attrs_count, padding);
+	DMSG("*key_size = %u attrs_count = %u padding = %u", att->size, att->attrs_count,
+	     padding);
 	for (uint32_t i = 0; i < att->attrs_count; i++) {
 		TEE_MemMove(&tag, key_material + padding, sizeof(tag));
 		padding += sizeof(tag);
@@ -608,8 +585,7 @@ keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
 			TEE_MemMove(&attr_size, key_material + padding,
 				    sizeof(attr_size));
 			padding += sizeof(attr_size);
-			DMSG("i = %u padding = %u attr_size = %u",
-			     i, padding, attr_size);
+			DMSG("i = %u padding = %u attr_size = %u", i, padding, attr_size);
 			/* will be freed when parameters array is destroyed */
 			buf = TEE_Malloc(attr_size, TEE_MALLOC_FILL_ZERO);
 			if (!buf) {
@@ -625,10 +601,8 @@ keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
 			}
 			TEE_MemMove(buf, key_material + padding, attr_size);
 			padding += attr_size;
-			DMSG("i = %u padding = %u attr_size = %u",
-			     i, padding, attr_size);
-			TEE_InitRefAttribute(att->attrs + i, tag, buf,
-					     attr_size);
+			DMSG("i = %u padding = %u attr_size = %u", i, padding, attr_size);
+			TEE_InitRefAttribute(att->attrs + i, tag, buf, attr_size);
 		}
 	}
 
@@ -636,7 +610,7 @@ keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
 
 out_err:
 	free_attrs(att->attrs, att->attrs_count);
-	TEE_MemFill((void*)att, 0, sizeof(*att));
+	TEE_MemFill((void *)att, 0, sizeof(*att));
 	return res;
 }
 
@@ -644,8 +618,7 @@ keymaster_error_t TA_key_from_attrs(TEE_ObjectHandle *obj_h,
 				    const tee_key_attributes *attrs)
 {
 	TEE_ObjectHandle obj = TEE_HANDLE_NULL;
-	uint32_t res = TEE_AllocateTransientObject(attrs->type, attrs->size,
-						   &obj);
+	uint32_t res = TEE_AllocateTransientObject(attrs->type, attrs->size, &obj);
 	if (res != TEE_SUCCESS) {
 		keymaster_error_t ret = KM_ERROR_UNKNOWN_ERROR;
 		if (res == TEE_ERROR_OUT_OF_MEMORY)
@@ -653,11 +626,11 @@ keymaster_error_t TA_key_from_attrs(TEE_ObjectHandle *obj_h,
 		else if (res == TEE_ERROR_NOT_SUPPORTED)
 			ret = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 		EMSG("Error TEE_AllocateTransientObject res = %x "
-		     "type = %x", res, attrs->type);
+		     "type = %x",
+		     res, attrs->type);
 		return ret;
 	}
-	res = TEE_PopulateTransientObject(obj, attrs->attrs,
-					  attrs->attrs_count);
+	res = TEE_PopulateTransientObject(obj, attrs->attrs, attrs->attrs_count);
 	if (res != TEE_SUCCESS) {
 		EMSG("Error TEE_PopulateTransientObject res = %x", res);
 		TEE_FreeTransientObject(obj);
@@ -670,17 +643,13 @@ keymaster_error_t TA_key_from_attrs(TEE_ObjectHandle *obj_h,
 }
 
 keymaster_error_t TA_persistent_obj_from_attrs(TEE_ObjectHandle *obj_h,
-					       TEE_Attribute *attrs,
-					       uint32_t attrs_count,
-					       const uint8_t* id,
-					       uint32_t id_len)
+					       TEE_Attribute *attrs, uint32_t attrs_count,
+					       const uint8_t *id, uint32_t id_len)
 {
 	TEE_ObjectHandle obj = TEE_HANDLE_NULL;
-	uint32_t res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
-						  id, id_len,
+	uint32_t res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE, id, id_len,
 						  TEE_DATA_FLAG_ACCESS_WRITE,
-						  TEE_HANDLE_NULL, NULL, 0U,
-						  &obj);
+						  TEE_HANDLE_NULL, NULL, 0U, &obj);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to create a EC persistent key, "
 		     "res=%x", res);
@@ -694,13 +663,13 @@ keymaster_error_t TA_persistent_obj_from_attrs(TEE_ObjectHandle *obj_h,
 		uint32_t length = is_val ? sizeof(attrs[i].content.value.a) :
 					   attrs[i].content.ref.length;
 
-		DMSG("attrs[%u].attributeID 0x%08X size %d",
-		     i, attrs[i].attributeID, length);
+		DMSG("attrs[%u].attributeID 0x%08X size %d", i, attrs[i].attributeID,
+		     length);
 
 		res = TA_write_obj_attr(obj, buf, length);
 		if (res != TEE_SUCCESS) {
-			EMSG("Failed to write attribute %x, res=%x",
-			      attrs[i].attributeID, res);
+			EMSG("Failed to write attribute %x, res=%x", attrs[i].attributeID,
+			     res);
 			TEE_CloseAndDeletePersistentObject(obj);
 			return KM_ERROR_UNKNOWN_ERROR;
 		}
@@ -713,10 +682,9 @@ keymaster_error_t TA_persistent_obj_from_attrs(TEE_ObjectHandle *obj_h,
 }
 
 keymaster_error_t TA_restore_key(uint8_t *key_material,
-				const keymaster_key_blob_t *key_blob,
-				uint32_t *key_size, uint32_t *type,
-				TEE_ObjectHandle *obj_h,
-				keymaster_key_param_set_t *params_t)
+				 const keymaster_key_blob_t *key_blob, uint32_t *key_size,
+				 uint32_t *type, TEE_ObjectHandle *obj_h,
+				 keymaster_key_param_set_t *params_t)
 {
 	tee_key_attributes attrs;
 	keymaster_error_t res = KM_ERROR_OK;
@@ -729,19 +697,16 @@ keymaster_error_t TA_restore_key(uint8_t *key_material,
 
 	*obj_h = TEE_HANDLE_NULL;
 
-	TEE_MemMove(key_material, key_blob->key_material,
-		    key_blob->key_material_size);
+	TEE_MemMove(key_material, key_blob->key_material, key_blob->key_material_size);
 	res = TA_decrypt(key_material, key_blob->key_material_size);
 	if (res != TEE_SUCCESS) {
 		if (res == (keymaster_error_t)TEE_ERROR_MAC_INVALID) {
 			res = KM_ERROR_INVALID_KEY_BLOB;
 			EMSG("Decryption probably succeeded but auth failed");
-		}
-		else if (res == (keymaster_error_t)TEE_ERROR_SHORT_BUFFER) {
+		} else if (res == (keymaster_error_t)TEE_ERROR_SHORT_BUFFER) {
 			res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 			EMSG("Output or tag buffer too small for output");
-		}
-		else {
+		} else {
 			EMSG("Failed to decript key blob");
 			res = KM_ERROR_UNKNOWN_ERROR;
 		}
@@ -749,9 +714,9 @@ keymaster_error_t TA_restore_key(uint8_t *key_material,
 	}
 
 	res = TA_populate_key_attrs(key_material, &attrs);
-	if (res != KM_ERROR_OK)	{
-	    EMSG("Failed to get key attributes from rey data");
-	    return KM_ERROR_INVALID_KEY_BLOB;
+	if (res != KM_ERROR_OK) {
+		EMSG("Failed to get key attributes from rey data");
+		return KM_ERROR_INVALID_KEY_BLOB;
 	}
 
 	if (attrs.alg == KM_ALGORITHM_HMAC) {
@@ -763,16 +728,14 @@ keymaster_error_t TA_restore_key(uint8_t *key_material,
 	}
 
 	res = TA_key_from_attrs(obj_h, &attrs);
-	if (res != KM_ERROR_OK)	{
-	    EMSG("Failed to create TEE_object from key attributes");
-	    goto out_rk;
-
+	if (res != KM_ERROR_OK) {
+		EMSG("Failed to create TEE_object from key attributes");
+		goto out_rk;
 	}
 
 	/* offset from array begin where parameters are stored */
 	padding = TA_get_key_size(attrs.alg);
-	TA_deserialize_param_set(key_material + padding, NULL,
-						params_t, false, &res);
+	TA_deserialize_param_set(key_material + padding, NULL, params_t, false, &res);
 	if (res != KM_ERROR_OK)
 		goto out_rk;
 
@@ -785,7 +748,6 @@ out_rk:
 		*type = attrs.type;
 		*key_size = attrs.size;
 	}
-
 
 	DMSG("populate attrs is finished with err %d", res);
 	free_attrs(attrs.attrs, attrs.attrs_count);
@@ -834,7 +796,7 @@ keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
 		case KM_MODE_CTR:
 			algo = TEE_ALG_AES_CTR;
 			break;
-		default:/* KM_MODE_GCM */
+		default: /* KM_MODE_GCM */
 			algo = TEE_ALG_AES_GCM;
 		}
 		break;
@@ -926,7 +888,7 @@ keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
 				return KM_ERROR_UNSUPPORTED_DIGEST;
 			}
 			break;
-		default:/* KM_PAD_NONE */
+		default: /* KM_PAD_NONE */
 			algo = TEE_ALG_RSA_NOPAD;
 			if (purpose == KM_PURPOSE_SIGN)
 				mode = TEE_MODE_DECRYPT;
@@ -1000,13 +962,10 @@ keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
 	switch (algorithm) {
 	case (KM_ALGORITHM_AES):
 		if (op_mode == KM_MODE_GCM) {
-			TEE_AEInit(*operation, nonce.data,
-					nonce.data_length,
-					mac_length, 0, 0);
+			TEE_AEInit(*operation, nonce.data, nonce.data_length, mac_length,
+				   0, 0);
 		} else {
-			TEE_CipherInit(*operation,
-					nonce.data,
-					nonce.data_length);
+			TEE_CipherInit(*operation, nonce.data, nonce.data_length);
 		}
 		break;
 	case (KM_ALGORITHM_RSA):
@@ -1022,15 +981,14 @@ keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
 		goto out_co;
 	}
 out_co:
-	if ((res != TEE_SUCCESS) && (*operation != TEE_HANDLE_NULL))
-	{
+	if ((res != TEE_SUCCESS) && (*operation != TEE_HANDLE_NULL)) {
 		TEE_FreeOperation(*operation);
 	}
 	return res;
 }
 
 keymaster_error_t TA_create_digest_op(TEE_OperationHandle *digest_op,
-					const keymaster_digest_t digest)
+				      const keymaster_digest_t digest)
 {
 	uint32_t algo;
 	uint32_t res = TEE_SUCCESS;

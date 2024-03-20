@@ -23,7 +23,7 @@ static bool TA_is_stream_cipher(const keymaster_block_mode_t mode)
 	case KM_MODE_CBC:
 	case KM_MODE_ECB:
 		return false;
-	default:/*KM_MODE_GCM, KM_MODE_CTR*/
+	default: /*KM_MODE_GCM, KM_MODE_CTR*/
 		return true;
 	}
 }
@@ -78,8 +78,8 @@ static keymaster_error_t TA_save_gcm_tag(keymaster_blob_t *input,
 			return res;
 	}
 
-	TEE_MemMove(operation->a_data + operation->a_data_length, input->data +
-		    (input->data_length - to_copy), to_copy);
+	TEE_MemMove(operation->a_data + operation->a_data_length,
+		    input->data + (input->data_length - to_copy), to_copy);
 	input->data_length -= to_copy;
 	operation->a_data_length += to_copy;
 	DMSG("Tag has been stored with size %u", operation->a_data_length);
@@ -109,13 +109,12 @@ static keymaster_error_t TA_aes_gcm_prepare(keymaster_operation_t *operation,
 	 * of the data provided to the last update call is the tag
 	 */
 	if (operation->mac_length != UNDEFINED &&
-	    operation->purpose == KM_PURPOSE_DECRYPT &&
-	    input->data_length > 0) {
+	    operation->purpose == KM_PURPOSE_DECRYPT && input->data_length > 0) {
 		if (operation->a_data == NULL) {
 			/* Freed when operation is
 			 * aborted (TA_abort_operation)
 			 */
-			operation->a_data = TEE_Malloc(operation->mac_length/8,
+			operation->a_data = TEE_Malloc(operation->mac_length / 8,
 						       TEE_MALLOC_FILL_ZERO);
 			if (!operation->a_data) {
 				EMSG("Failed to allocate memory for authentication tag");
@@ -148,8 +147,8 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 			memcpy(input_op->data, operation->input_saved.data,
 			       operation->input_saved.data_length);
 		if (input->data)
-			memcpy(input_op->data + operation->input_saved.data_length, input->data,
-			       input->data_length);
+			memcpy(input_op->data + operation->input_saved.data_length,
+			       input->data, input->data_length);
 
 		if (operation->input_saved.data)
 			TEE_Free(operation->input_saved.data);
@@ -166,31 +165,32 @@ static void TA_fill_input_op(keymaster_operation_t *operation, keymaster_blob_t 
 	}
 }
 
-static void TA_pkcs7_prepend_output(keymaster_operation_t *operation, keymaster_blob_t *output)
+static void TA_pkcs7_prepend_output(keymaster_operation_t *operation,
+				    keymaster_blob_t *output)
 {
-	uint8_t* tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
+	uint8_t *tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
 	memcpy(tmp, output->data, output->data_length);
 
-	output->data = TEE_Realloc(output->data, output->data_length +
-				   operation->output_saved.data_length);
+	output->data = TEE_Realloc(output->data,
+				   output->data_length + operation->output_saved.data_length);
 
 	memcpy(output->data, operation->output_saved.data,
 	       operation->output_saved.data_length);
-	memcpy(output->data + operation->output_saved.data_length,
-	       tmp, output->data_length);
+	memcpy(output->data + operation->output_saved.data_length, tmp,
+	       output->data_length);
 
 	output->data_length += operation->output_saved.data_length;
 
 	TEE_Free(tmp);
 }
 
-static void TA_pkcs7_save_output(keymaster_operation_t *operation, keymaster_blob_t *output,
-                                 bool remaining_input)
+static void TA_pkcs7_save_output(keymaster_operation_t *operation,
+				 keymaster_blob_t *output, bool remaining_input)
 {
-	uint8_t* tmp = NULL;
+	uint8_t *tmp = NULL;
 	size_t tmp_length = 0, save_offset = 0;
 
-        /* If some output data have been saved from previous operation,
+	/* If some output data have been saved from previous operation,
          * add these data to tmp buffer.
          */
 	if (operation->output_saved.data) {
@@ -204,38 +204,40 @@ static void TA_pkcs7_save_output(keymaster_operation_t *operation, keymaster_blo
 	}
 
 	if (output->data_length > 0 && (output->data_length % BLOCK_SIZE == 0)) {
-
-                /* If we have remaining input, that means we can produce the output.
+		/* If we have remaining input, that means we can produce the output.
                  * Otherwise we should save the last block of output and wait next operation.
                  */
-                if (remaining_input == false) {
-                        save_offset = ((output->data_length / BLOCK_SIZE) - 1) * BLOCK_SIZE;
+		if (remaining_input == false) {
+			save_offset = ((output->data_length / BLOCK_SIZE) - 1) * BLOCK_SIZE;
 
-                        /* save last block of output */
-                        operation->output_saved.data_length = BLOCK_SIZE;
-                        operation->output_saved.data = TEE_Malloc(BLOCK_SIZE, TEE_MALLOC_FILL_ZERO);
-                        memcpy(operation->output_saved.data, output->data + save_offset, BLOCK_SIZE);
+			/* save last block of output */
+			operation->output_saved.data_length = BLOCK_SIZE;
+			operation->output_saved.data = TEE_Malloc(BLOCK_SIZE, TEE_MALLOC_FILL_ZERO);
+			memcpy(operation->output_saved.data, output->data + save_offset,
+			       BLOCK_SIZE);
 
-                        /* append to tmp the whole output without last block */
-                        if (save_offset > 0) {
-                                if (tmp)
-                                        tmp = TEE_Realloc(tmp, tmp_length + save_offset);
-                                else
-                                        tmp = TEE_Malloc(save_offset, TEE_MALLOC_FILL_ZERO);
-                                memcpy(tmp + tmp_length, output->data, save_offset);
-                                tmp_length += save_offset;
-                        }
-                } else {
-                        if (tmp)
-                                tmp = TEE_Realloc(tmp, tmp_length + output->data_length);
-                        else
-                                tmp = TEE_Malloc(output->data_length, TEE_MALLOC_FILL_ZERO);
-                        memcpy(tmp + tmp_length, output->data, output->data_length);
-                        tmp_length += output->data_length;
-                }
+			/* append to tmp the whole output without last block */
+			if (save_offset > 0) {
+				if (tmp)
+					tmp = TEE_Realloc(tmp, tmp_length + save_offset);
+				else
+					tmp = TEE_Malloc(save_offset,
+							 TEE_MALLOC_FILL_ZERO);
+				memcpy(tmp + tmp_length, output->data, save_offset);
+				tmp_length += save_offset;
+			}
+		} else {
+			if (tmp)
+				tmp = TEE_Realloc(tmp, tmp_length + output->data_length);
+			else
+				tmp = TEE_Malloc(output->data_length,
+						 TEE_MALLOC_FILL_ZERO);
+			memcpy(tmp + tmp_length, output->data, output->data_length);
+			tmp_length += output->data_length;
+		}
 
-                TEE_Free(output->data);
-        }
+		TEE_Free(output->data);
+	}
 
 	if (tmp) {
 		output->data = TEE_Malloc(tmp_length, TEE_MALLOC_FILL_ZERO);
@@ -248,8 +250,7 @@ static void TA_pkcs7_save_output(keymaster_operation_t *operation, keymaster_blo
 	}
 }
 
-keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
-				keymaster_blob_t *input,
+keymaster_error_t TA_aes_finish(keymaster_operation_t *operation, keymaster_blob_t *input,
 				keymaster_blob_t *output, uint32_t *out_size,
 				uint32_t tag_len,
 				const keymaster_key_param_set_t *in_params)
@@ -261,7 +262,8 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 
 	TA_fill_input_op(operation, input, &input_op);
 
-	if (operation->padding == KM_PAD_PKCS7 && operation->purpose == KM_PURPOSE_ENCRYPT) {
+	if (operation->padding == KM_PAD_PKCS7 &&
+	    operation->purpose == KM_PURPOSE_ENCRYPT) {
 		res = TA_add_pkcs7_pad(&input_op, true, output, out_size);
 		if (res != KM_ERROR_OK)
 			goto out;
@@ -292,10 +294,9 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 				res = KM_ERROR_MEMORY_ALLOCATION_FAILED;
 				goto out;
 			}
-			res = TEE_AEEncryptFinal(*operation->operation,
-						 input_op.data, input_op.data_length,
-						 output->data, out_size,
-						 tag, &tag_len);
+			res = TEE_AEEncryptFinal(*operation->operation, input_op.data,
+						 input_op.data_length, output->data,
+						 out_size, tag, &tag_len);
 			if (res != KM_ERROR_OK) {
 				EMSG("TEE_AEEncryptFinal failed, res=%x", res);
 				goto out;
@@ -305,13 +306,13 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 			 * to the returned ciphertext
 			 */
 			TA_append_tag(output, out_size, tag, tag_len);
-		} else {/* KM_PURPOSE_DECRYPT	During decryption
+		} else { /* KM_PURPOSE_DECRYPT	During decryption
 			 * process the last KM_TAG_MAC_LENGTH bytes from
 			 * input data of last Update as the tag
 			 */
-			tee_res = TEE_AEDecryptFinal(*operation->operation,
-						     input_op.data, input_op.data_length,
-						     output->data, out_size,
+			tee_res = TEE_AEDecryptFinal(*operation->operation, input_op.data,
+						     input_op.data_length, output->data,
+						     out_size,
 						     operation->a_data, /*tag to compare*/
 						     operation->mac_length / 8);
 			if (tee_res == TEE_ERROR_MAC_INVALID) {
@@ -323,15 +324,13 @@ keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
 		}
 	} else {
 		res = TEE_CipherDoFinal(*operation->operation, input_op.data,
-					input_op.data_length, output->data,
-					out_size);
+					input_op.data_length, output->data, out_size);
 	}
 
 	output->data_length = *out_size;
 
 	if (res == KM_ERROR_OK && operation->padding == KM_PAD_PKCS7 &&
 	    operation->purpose == KM_PURPOSE_DECRYPT) {
-
 		/* prepend output if remaining output_saved data present */
 		if (operation->output_saved.data) {
 			TA_pkcs7_prepend_output(operation, output);
@@ -355,12 +354,9 @@ out:
 	return res;
 }
 
-keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
-				keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				uint32_t *out_size,
-				const uint32_t input_provided,
-				size_t *input_consumed,
+keymaster_error_t TA_aes_update(keymaster_operation_t *operation, keymaster_blob_t *input,
+				keymaster_blob_t *output, uint32_t *out_size,
+				const uint32_t input_provided, size_t *input_consumed,
 				const keymaster_key_param_set_t *in_params)
 {
 	keymaster_error_t res = KM_ERROR_OK;
@@ -378,10 +374,9 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 		if (remaining_input) {
 			input_op.data_length -= remaining_input;
 			operation->input_saved.data_length = remaining_input;
-			operation->input_saved.data = TEE_Malloc(remaining_input,
-								 TEE_MALLOC_FILL_ZERO);
-			memcpy(operation->input_saved.data, input_op.data + input_op.data_length,
-			       remaining_input);
+			operation->input_saved.data = TEE_Malloc(remaining_input, TEE_MALLOC_FILL_ZERO);
+			memcpy(operation->input_saved.data,
+			       input_op.data + input_op.data_length, remaining_input);
 		}
 	}
 
@@ -412,9 +407,8 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 			 * Add BLOCK_SIZE in case adding padding
 			 */
 			*out_size = BLOCK_SIZE + input_op.data_length - output->data_length;
-			res = TEE_CipherUpdate(*operation->operation,
-					       input_op.data + pos, in_size,
-					       output->data + pos, out_size);
+			res = TEE_CipherUpdate(*operation->operation, input_op.data + pos,
+					       in_size, output->data + pos, out_size);
 			if (res != TEE_SUCCESS) {
 				EMSG("Error TEE_CipherUpdate, res=%x", res);
 				goto out;
@@ -434,7 +428,6 @@ keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
 
 	if (res == KM_ERROR_OK && operation->padding == KM_PAD_PKCS7 &&
 	    operation->purpose == KM_PURPOSE_DECRYPT) {
-
 		/* When padding is used, output is produced one input byte later:
 		 * once the first byte of the next input block is provided.
 		 */
@@ -456,9 +449,8 @@ out:
  */
 keymaster_error_t TA_aes_init_operation(uint32_t algorithm, uint32_t mode,
 					uint32_t objecttype, uint32_t objectusage,
-					uint32_t attributeid,
-					void *keybuffer, uint32_t maxkeylen,
-					void *iv, size_t ivlen,
+					uint32_t attributeid, void *keybuffer,
+					uint32_t maxkeylen, void *iv, size_t ivlen,
 					TEE_OperationHandle *op)
 {
 	TEE_Result result;

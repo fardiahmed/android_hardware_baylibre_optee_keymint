@@ -21,7 +21,7 @@
 //Master key for encryption/decryption of all CA's keys,
 //and also used as HBK (hardware-bound private key) during attestation
 
-static uint8_t objID[] = {0xa7U, 0x62U, 0xcfU, 0x11U};
+static uint8_t objID[] = { 0xa7U, 0x62U, 0xcfU, 0x11U };
 static uint8_t iv[IV_LENGTH];
 
 TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
@@ -40,9 +40,8 @@ TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
 		return TEE_SUCCESS;
 	}
 
-	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
-			objID, sizeof(objID),
-			TEE_DATA_FLAG_ACCESS_READ, &object);
+	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, objID, sizeof(objID),
+				       TEE_DATA_FLAG_ACCESS_READ, &object);
 
 	if (res == TEE_SUCCESS) {
 		//Key size is fixed
@@ -59,16 +58,17 @@ TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
 			goto close;
 		}
 
-		TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE,
-				keyData, sizeof(keyData));
+		TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, keyData,
+				     sizeof(keyData));
 
-		res = TEE_AllocateTransientObject(TEE_TYPE_AES,
-				KEY_LENGTH * BITS_IN_BYTE, &masterKey);
+		res = TEE_AllocateTransientObject(TEE_TYPE_AES, KEY_LENGTH * BITS_IN_BYTE,
+						  &masterKey);
 		if (res == TEE_SUCCESS) {
 			res = TEE_PopulateTransientObject(masterKey, attrs,
-					sizeof(attrs)/sizeof(TEE_Attribute));
+							  sizeof(attrs) / sizeof(TEE_Attribute));
 			if (res != TEE_SUCCESS) {
-				EMSG("Failed to populate transient object, res = %x", res);
+				EMSG("Failed to populate transient object, res = %x",
+				     res);
 				TEE_FreeTransientObject(masterKey);
 				masterKey = TEE_HANDLE_NULL;
 			}
@@ -98,19 +98,18 @@ TEE_Result TA_create_secret_key(void)
 	uint8_t keyData[KEY_LENGTH];
 
 	DMSG("%s %d", __func__, __LINE__);
-	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
-				objID, sizeof(objID),
-				TEE_DATA_FLAG_ACCESS_READ, &object);
+	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, objID, sizeof(objID),
+				       TEE_DATA_FLAG_ACCESS_READ, &object);
 
 	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
 		//No such key, create it
 		TEE_GenerateRandom(keyData, sizeof(keyData));
 		TEE_GenerateRandom((void *)iv, sizeof(iv));
 
-		res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
-				objID, sizeof(objID),
-				TEE_DATA_FLAG_ACCESS_WRITE,
-				TEE_HANDLE_NULL, NULL, 0U, &object);
+		res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE, objID,
+						 sizeof(objID),
+						 TEE_DATA_FLAG_ACCESS_WRITE,
+						 TEE_HANDLE_NULL, NULL, 0U, &object);
 
 		if (res != TEE_SUCCESS) {
 			EMSG("Failed to create a secret persistent key, res = %x", res);
@@ -130,9 +129,8 @@ TEE_Result TA_create_secret_key(void)
 		}
 
 error:
-		(res == TEE_SUCCESS) ?
-				TEE_CloseObject(object) :
-				TEE_CloseAndDeletePersistentObject(object);
+		(res == TEE_SUCCESS) ? TEE_CloseObject(object) :
+				       TEE_CloseAndDeletePersistentObject(object);
 
 	} else if (res == TEE_SUCCESS) {
 		//Key already exits
@@ -186,15 +184,14 @@ TEE_Result TA_execute(uint8_t *data, const size_t size, const uint32_t mode)
 	if (res == TEE_SUCCESS && size > 0) {
 		if (mode == TEE_MODE_ENCRYPT) {
 			DMSG("tagLen = %u", tagLen);
-			res = TEE_AEEncryptFinal(op, data, size - TAG_LENGTH,
-					outbuf, &outbuf_size,
-					(void *)&tag, &tagLen);
+			res = TEE_AEEncryptFinal(op, data, size - TAG_LENGTH, outbuf,
+						 &outbuf_size, (void *)&tag, &tagLen);
 			DMSG("tagLen = %u", tagLen);
-		}
-		else {
-			res = TEE_AEDecryptFinal(op, data, size - TAG_LENGTH,
-					outbuf, &outbuf_size,
-					(void *)(data + size - TAG_LENGTH), TAG_LENGTH);
+		} else {
+			res = TEE_AEDecryptFinal(op, data, size - TAG_LENGTH, outbuf,
+						 &outbuf_size,
+						 (void *)(data + size - TAG_LENGTH),
+						 TAG_LENGTH);
 		}
 	}
 	if (res != TEE_SUCCESS)

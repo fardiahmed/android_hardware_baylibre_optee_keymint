@@ -46,71 +46,54 @@
 uint32_t get_digest_size(const keymaster_digest_t *digest);
 
 keymaster_error_t TA_check_permission(const keymaster_key_param_set_t *params,
-				const keymaster_blob_t client_id,
-				const keymaster_blob_t app_data,
-				bool *exportable);
+				      const keymaster_blob_t client_id,
+				      const keymaster_blob_t app_data, bool *exportable);
 
-keymaster_error_t TA_check_params(const keymaster_key_param_set_t *key_params,
-				const keymaster_key_param_set_t *in_params,
-				keymaster_algorithm_t *algorithm,
-				const keymaster_purpose_t op_purpose,
-				keymaster_digest_t *digest,
-				keymaster_block_mode_t *mode,
-				keymaster_padding_t *padding,
-				uint32_t *mac_length,
-				keymaster_blob_t *nonce, uint32_t *min_sec,
-				bool *do_auth, uint8_t *key_id);
+keymaster_error_t TA_check_params(
+	const keymaster_key_param_set_t *key_params,
+	const keymaster_key_param_set_t *in_params, keymaster_algorithm_t *algorithm,
+	const keymaster_purpose_t op_purpose, keymaster_digest_t *digest,
+	keymaster_block_mode_t *mode, keymaster_padding_t *padding, uint32_t *mac_length,
+	keymaster_blob_t *nonce, uint32_t *min_sec, bool *do_auth, uint8_t *key_id);
 
-void TA_push_param(keymaster_key_param_set_t *params,
-			const keymaster_key_param_t *param);
+void TA_push_param(keymaster_key_param_set_t *params, const keymaster_key_param_t *param);
 
 keymaster_error_t TA_parse_params(const keymaster_key_param_set_t params_t,
-				keymaster_algorithm_t *key_algorithm,
-				uint32_t *key_size,
-				uint64_t *key_rsa_public_exponent,
-				keymaster_digest_t *key_digest,
-				const bool import);
+				  keymaster_algorithm_t *key_algorithm,
+				  uint32_t *key_size, uint64_t *key_rsa_public_exponent,
+				  keymaster_digest_t *key_digest, const bool import);
 
-keymaster_error_t TA_fill_characteristics(
-			keymaster_key_characteristics_t *characteristics,
-			const keymaster_key_param_set_t *params,
-			uint32_t *size);
+keymaster_error_t TA_fill_characteristics(keymaster_key_characteristics_t *characteristics,
+					  const keymaster_key_param_set_t *params, uint32_t *size);
 
 uint32_t TA_blob_size(const keymaster_blob_t *blob);
 
-uint32_t TA_characteristics_size(
-			const keymaster_key_characteristics_t *characteristics);
+uint32_t TA_characteristics_size(const keymaster_key_characteristics_t *characteristics);
 
-uint32_t TA_param_set_size(
-		const keymaster_key_param_set_t *params);
+uint32_t TA_param_set_size(const keymaster_key_param_set_t *params);
 
-uint32_t TA_cert_chain_size(
-		const keymaster_cert_chain_t *cert_chain);
+uint32_t TA_cert_chain_size(const keymaster_cert_chain_t *cert_chain);
 
 void TA_add_origin(keymaster_key_param_set_t *params_t,
-		const keymaster_key_origin_t origin, const bool replace_origin);
+		   const keymaster_key_origin_t origin, const bool replace_origin);
 
 void TA_add_creation_datetime(keymaster_key_param_set_t *params_t, bool replace);
 
 void TA_add_os_version_patchlevel(keymaster_key_param_set_t *params_t,
-				  uint32_t os_version,
-				  uint32_t os_patchlevel);
+				  uint32_t os_version, uint32_t os_patchlevel);
 
 void TA_add_ec_curve(keymaster_key_param_set_t *params_t, uint32_t key_size);
 
-bool cmpBlobParam(const keymaster_blob_t blob,
-			const keymaster_key_param_t param);
+bool cmpBlobParam(const keymaster_blob_t blob, const keymaster_key_param_t param);
 
 bool is_origination_purpose(const keymaster_purpose_t purpose);
 
-void TA_add_to_params(keymaster_key_param_set_t *params,
-				const uint32_t key_size,
-				const uint64_t rsa_public_exponent);
+void TA_add_to_params(keymaster_key_param_set_t *params, const uint32_t key_size,
+		      const uint64_t rsa_public_exponent);
 
 void TA_free_params(keymaster_key_param_set_t *params);
 
 void TA_free_cert_chain(keymaster_cert_chain_t *cert_chain);
-
 
 static inline keymaster_ec_curve_t TA_size_to_ECcurve(uint32_t key_size)
 {
@@ -144,11 +127,12 @@ static inline uint32_t TA_ECcurve_to_size(keymaster_ec_curve_t curve)
 	}
 }
 
-#define TAG_TO_STR(tag)		\
-	case tag:		\
+#define TAG_TO_STR(tag) \
+	case tag:       \
 		return #tag;
 
-static inline const char *TA_tag_to_str (keymaster_tag_t tag) {
+static inline const char *TA_tag_to_str(keymaster_tag_t tag)
+{
 	switch (tag) {
 	TAG_TO_STR(KM_TAG_INVALID)
 	TAG_TO_STR(KM_TAG_BOOTLOADER_ONLY)
@@ -200,4 +184,4 @@ static inline const char *TA_tag_to_str (keymaster_tag_t tag) {
 	}
 }
 
-#endif/* ANDROID_OPTEE_PARAMETERS_H */
+#endif /* ANDROID_OPTEE_PARAMETERS_H */

@@ -48,8 +48,7 @@
 #include "parsel.h"
 #include "parameters.h"
 
-typedef struct tee_key_attributes
-{
+typedef struct tee_key_attributes {
 	TEE_Attribute *attrs;
 	uint32_t attrs_count;
 	uint32_t size;
@@ -59,59 +58,52 @@ typedef struct tee_key_attributes
 
 /* Operations with keys */
 keymaster_error_t TA_import_key(const keymaster_algorithm_t algorithm,
-				const uint32_t key_size,
-				uint8_t *key_material,
+				const uint32_t key_size, uint8_t *key_material,
 				const keymaster_digest_t digest,
 				const TEE_Attribute *attrs_in,
 				const uint32_t attrs_in_count);
 
 keymaster_error_t TA_generate_key(const keymaster_algorithm_t algorithm,
-				const uint32_t key_size,
-				uint8_t *key_material,
-				const keymaster_digest_t digest,
-				const uint64_t rsa_public_exponent);
+				  const uint32_t key_size, uint8_t *key_material,
+				  const keymaster_digest_t digest,
+				  const uint64_t rsa_public_exponent);
 
 keymaster_error_t TA_restore_key(uint8_t *key_material,
-				const keymaster_key_blob_t *key_blob,
-				uint32_t *key_size, uint32_t *type,
-				TEE_ObjectHandle *obj_h,
-				keymaster_key_param_set_t *params_t);
+				 const keymaster_key_blob_t *key_blob, uint32_t *key_size,
+				 uint32_t *type, TEE_ObjectHandle *obj_h,
+				 keymaster_key_param_set_t *params_t);
 
 /* Operations handling */
 keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
-				const TEE_ObjectHandle obj_h,
-				const keymaster_purpose_t purpose,
-				const keymaster_algorithm_t algorithm,
-				const uint32_t key_size,
-				const keymaster_blob_t nonce,
-				const keymaster_digest_t digest,
-				const keymaster_block_mode_t mode,
-				const keymaster_padding_t padding,
-				const uint32_t mac_length);
+				      const TEE_ObjectHandle obj_h,
+				      const keymaster_purpose_t purpose,
+				      const keymaster_algorithm_t algorithm,
+				      const uint32_t key_size,
+				      const keymaster_blob_t nonce,
+				      const keymaster_digest_t digest,
+				      const keymaster_block_mode_t mode,
+				      const keymaster_padding_t padding,
+				      const uint32_t mac_length);
 
 keymaster_error_t TA_create_digest_op(TEE_OperationHandle *digest_op,
-				const keymaster_digest_t digest);
+				      const keymaster_digest_t digest);
 
-keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data,
-				uint32_t *key_size,
-				const keymaster_digest_t digest);
+keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data, uint32_t *key_size,
+					 const keymaster_digest_t digest);
 
-keymaster_error_t TA_populate_key_attrs(uint8_t *key_material,
-					tee_key_attributes *att);
+keymaster_error_t TA_populate_key_attrs(uint8_t *key_material, tee_key_attributes *att);
 
 keymaster_error_t TA_key_from_attrs(TEE_ObjectHandle *obj_h,
 				    const tee_key_attributes *attrs);
 
 keymaster_error_t TA_persistent_obj_from_attrs(TEE_ObjectHandle *obj_h,
-					       TEE_Attribute *attrs,
-					       uint32_t attrs_count,
-					       const uint8_t* id,
-					       uint32_t id_len);
+					       TEE_Attribute *attrs, uint32_t attrs_count,
+					       const uint8_t *id, uint32_t id_len);
 
 keymaster_error_t TA_check_hmac_key(const uint32_t type, uint32_t *key_size);
 
-TEE_Result TA_write_obj_attr(TEE_ObjectHandle attObj,
-			     const uint8_t *buffer, const uint32_t buffSize);
+TEE_Result TA_write_obj_attr(TEE_ObjectHandle attObj, const uint8_t *buffer,
+			     const uint32_t buffSize);
 
 bool is_attr_value(const uint32_t tag);
 
@@ -122,10 +114,10 @@ void free_attrs(TEE_Attribute *attrs, uint32_t size);
 uint32_t TA_get_key_size(const keymaster_algorithm_t algorithm);
 
 uint32_t *TA_get_attrs_list_short(const keymaster_algorithm_t algorithm,
-						const bool short_list);
+				  const bool short_list);
 
 uint32_t *TA_get_attrs_list(const keymaster_algorithm_t algorithm);
 
 uint32_t TA_get_curve_nist(const uint32_t key_size);
 
-#endif/* ANDROID_OPTEE_GENERATOR_H */
+#endif /* ANDROID_OPTEE_GENERATOR_H */

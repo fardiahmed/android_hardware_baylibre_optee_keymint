@@ -23,8 +23,7 @@ bool TA_check_pkcs7_pad(keymaster_blob_t *output)
 	uint8_t pad;
 
 	if (output->data == NULL || output->data_length == 0 ||
-			output->data_length < BLOCK_SIZE ||
-			output->data_length % BLOCK_SIZE != 0)
+	    output->data_length < BLOCK_SIZE || output->data_length % BLOCK_SIZE != 0)
 		return false;
 	last_i = output->data_length - 1;
 	pad = output->data[last_i];
@@ -37,18 +36,16 @@ bool TA_check_pkcs7_pad(keymaster_blob_t *output)
 	return true;
 }
 
-keymaster_error_t TA_check_out_size(const uint32_t input_l,
-					keymaster_blob_t *output,
-					uint32_t *out_size,
-					uint32_t tag_len)
+keymaster_error_t TA_check_out_size(const uint32_t input_l, keymaster_blob_t *output,
+				    uint32_t *out_size, uint32_t tag_len)
 {
 	uint8_t *ptr = NULL;
 
 	/* Recalculate output size */
-	if (*out_size != (((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1)
-						* BLOCK_SIZE + tag_len)) {
-		*out_size = ((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1)
-							* BLOCK_SIZE + tag_len;
+	if (*out_size !=
+	    (((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1) * BLOCK_SIZE + tag_len)) {
+		*out_size = ((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1) * BLOCK_SIZE +
+			    tag_len;
 		ptr = TEE_Realloc(output->data, *out_size);
 		if (!ptr) {
 			EMSG("Failed reallocate memory for output");
@@ -59,9 +56,8 @@ keymaster_error_t TA_check_out_size(const uint32_t input_l,
 	return KM_ERROR_OK;
 }
 
-keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
-				const bool force, keymaster_blob_t *output,
-				uint32_t *out_size)
+keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input, const bool force,
+				   keymaster_blob_t *output, uint32_t *out_size)
 {
 	uint32_t pad = 0;
 	uint8_t *data = NULL;
@@ -94,8 +90,7 @@ keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
 	return TA_check_out_size(input->data_length, output, out_size, 0);
 }
 
-keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
-					uint32_t *out_size)
+keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output, uint32_t *out_size)
 {
 	uint32_t pad = 0;
 	uint8_t *data;

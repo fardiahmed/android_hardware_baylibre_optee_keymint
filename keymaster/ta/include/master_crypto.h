@@ -39,4 +39,4 @@ TEE_Result TA_decrypt(uint8_t *data, const size_t size);
 
 void TA_free_master_key(void);
 
-#endif/* ANDROID_OPTEE_MASTER_CRYPTO_H */
+#endif /* ANDROID_OPTEE_MASTER_CRYPTO_H */

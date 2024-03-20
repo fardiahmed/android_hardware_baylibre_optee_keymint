@@ -28,25 +28,20 @@
 
 #define EMPTY_BLOB {.data = NULL, .data_length = 0}
 
-keymaster_error_t TA_aes_finish(keymaster_operation_t *operation,
-				keymaster_blob_t *input,
+keymaster_error_t TA_aes_finish(keymaster_operation_t *operation, keymaster_blob_t *input,
 				keymaster_blob_t *output, uint32_t *out_size,
 				uint32_t tag_len,
 				const keymaster_key_param_set_t *in_params);
 
-keymaster_error_t TA_aes_update(keymaster_operation_t *operation,
-				keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				uint32_t *out_size,
-				const uint32_t input_provided,
-				size_t *input_consumed,
+keymaster_error_t TA_aes_update(keymaster_operation_t *operation, keymaster_blob_t *input,
+				keymaster_blob_t *output, uint32_t *out_size,
+				const uint32_t input_provided, size_t *input_consumed,
 				const keymaster_key_param_set_t *in_params);
 
 keymaster_error_t TA_aes_init_operation(uint32_t algorithm, uint32_t mode,
-				uint32_t objecttype, uint32_t objectusage,
-				uint32_t attributeid,
-				void *keybuffer, uint32_t maxkeylen,
-				void *iv, size_t ivlen,
-				TEE_OperationHandle *op);
+					uint32_t objecttype, uint32_t objectusage,
+					uint32_t attributeid, void *keybuffer,
+					uint32_t maxkeylen, void *iv, size_t ivlen,
+					TEE_OperationHandle *op);
 
-#endif/*ANDROID_OPTEE_CRYPTO_AES_H*/
+#endif /*ANDROID_OPTEE_CRYPTO_AES_H*/

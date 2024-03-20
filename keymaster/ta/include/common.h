@@ -23,24 +23,21 @@
 #define SIZE_LENGTH_AKMS sizeof(uint32_t)
 
 #define SIZE_OF_ITEM(item) (item ? sizeof(item[0]) : 0)
-#define PARAM_SET_SIZE(parameters) \
-	(SIZE_LENGTH + \
-	parameters->length * SIZE_OF_ITEM(parameters->params) \
-	+ get_blob_size_in_params(parameters))
-#define BLOB_SIZE(blob) \
-	(blob->data_length * SIZE_OF_ITEM(blob->data) + SIZE_LENGTH)
+#define PARAM_SET_SIZE(parameters)                                             \
+	(SIZE_LENGTH + parameters->length * SIZE_OF_ITEM(parameters->params) + \
+	 get_blob_size_in_params(parameters))
+#define BLOB_SIZE(blob) (blob->data_length * SIZE_OF_ITEM(blob->data) + SIZE_LENGTH)
 #define BLOB_SIZE_AKMS(blob) \
 	(blob->data_length * SIZE_OF_ITEM(blob->data) + SIZE_LENGTH_AKMS)
 
 #define KEY_BLOB_SIZE(key_blob) \
-	(key_blob->key_material_size * \
-	SIZE_OF_ITEM(key_blob->key_material) + SIZE_LENGTH)
-#define KEY_BLOB_SIZE_AKMS(key_blob) \
-	(key_blob->key_material_size * \
-	SIZE_OF_ITEM(key_blob->key_material) + SIZE_LENGTH_AKMS)
+	(key_blob->key_material_size * SIZE_OF_ITEM(key_blob->key_material) + SIZE_LENGTH)
+#define KEY_BLOB_SIZE_AKMS(key_blob)                                          \
+	(key_blob->key_material_size * SIZE_OF_ITEM(key_blob->key_material) + \
+	 SIZE_LENGTH_AKMS)
 
 #define TA_KEYMASTER_UUID { 0xdba51a17, 0x0563, 0x11e7, \
-	{ 0x93, 0xb1, 0x6f, 0xa7, 0xb0, 0x07, 0x1a, 0x51} }
+			  { 0x93, 0xb1, 0x6f, 0xa7, 0xb0, 0x07, 0x1a, 0x51} }
 
 enum keystore_command {
 	KEYMASTER_RESP_BIT              = 1,
@@ -107,7 +104,7 @@ enum keystore_command {
 
 };
 
-typedef enum{
+typedef enum {
 	KM_NULL = 0,
 	KM_POPULATED = 1,
 } presence;

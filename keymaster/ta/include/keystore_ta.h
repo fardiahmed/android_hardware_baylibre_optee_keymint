@@ -84,7 +84,7 @@ uint64_t identifier_rsa[] = {1, 2, 840, 113549, 1, 1, 1};
  *    coefficient INTEGER -- (inverse of q) mod p }
  */
 
-uint64_t identifier_ec[] = {1, 2, 840, 10045, 2, 1};
+uint64_t identifier_ec[] = { 1, 2, 840, 10045, 2, 1 };
 /* ECPrivateKey ::= SEQUNCE {
  *    version Version,
  *    secretValue OCTET_STRING,
@@ -98,18 +98,14 @@ typedef struct tee_km_context {
 	uint32_t os_patchlevel;
 } tee_km_context_t;
 
-static uint32_t TA_possibe_size(const uint32_t type,
-				const uint32_t key_size,
-				const keymaster_blob_t input,
-				const uint32_t tag_len);
-
+static uint32_t TA_possibe_size(const uint32_t type, const uint32_t key_size,
+				const keymaster_blob_t input, const uint32_t tag_len);
 
 static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS]);
 
 static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS]);
 
-static keymaster_error_t TA_getKeyCharacteristics(
-					TEE_Param params[TEE_NUM_PARAMS]);
+static keymaster_error_t TA_getKeyCharacteristics(TEE_Param params[TEE_NUM_PARAMS]);
 
 static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS]);
 
@@ -123,8 +119,7 @@ static keymaster_error_t TA_deleteKey(TEE_Param params[TEE_NUM_PARAMS]);
 
 static keymaster_error_t TA_deleteAllKeys(TEE_Param params[TEE_NUM_PARAMS]);
 
-static keymaster_error_t TA_destroyAttestationIds(
-					TEE_Param params[TEE_NUM_PARAMS]);
+static keymaster_error_t TA_destroyAttestationIds(TEE_Param params[TEE_NUM_PARAMS]);
 
 static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS]);
 
@@ -134,4 +129,4 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS]);
 
 static keymaster_error_t TA_abort(TEE_Param params[TEE_NUM_PARAMS]);
 
-#endif  /* ANDROID_OPTEE_KEYSTORE_TA_H */
+#endif /* ANDROID_OPTEE_KEYSTORE_TA_H */

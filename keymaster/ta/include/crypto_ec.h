@@ -29,17 +29,12 @@
 #include "mbedtls_proxy.h"
 
 keymaster_error_t TA_ec_update(keymaster_operation_t *operation,
-				const keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				size_t *input_consumed,
-				const uint32_t input_provided);
+			       const keymaster_blob_t *input, keymaster_blob_t *output,
+			       size_t *input_consumed, const uint32_t input_provided);
 
 keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
-				keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				keymaster_blob_t *signature,
-				uint32_t *out_size,
-				const uint32_t key_size,
-				bool *input_allocate_memory);
+			       keymaster_blob_t *input, keymaster_blob_t *output,
+			       keymaster_blob_t *signature, uint32_t *out_size,
+			       const uint32_t key_size, bool *input_allocate_memory);
 
-#endif/* ANDROID_OPTEE_CRYPTO_EC_H */
+#endif /* ANDROID_OPTEE_CRYPTO_EC_H */

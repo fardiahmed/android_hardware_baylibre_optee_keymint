@@ -69,22 +69,21 @@ TEE_Result TA_AppendAttestationCertKey(TEE_Param params[TEE_NUM_PARAMS]);
 #endif
 
 keymaster_error_t TA_read_root_attest_cert(uint32_t type,
-		keymaster_cert_chain_t *cert_chain);
-TEE_Result TA_gen_key_attest_cert(uint32_t type,
-                TEE_ObjectHandle attestedKey,
-                keymaster_key_param_set_t *attest_params,
-                keymaster_key_characteristics_t *key_chr,
-                keymaster_cert_chain_t *cert_chain,
-                uint8_t verified_boot, bool includeUniqueID);
+					   keymaster_cert_chain_t *cert_chain);
+TEE_Result TA_gen_key_attest_cert(uint32_t type, TEE_ObjectHandle attestedKey,
+				  keymaster_key_param_set_t *attest_params,
+				  keymaster_key_characteristics_t *key_chr,
+				  keymaster_cert_chain_t *cert_chain,
+				  uint8_t verified_boot, bool includeUniqueID);
 
 TEE_Result TA_create_attest_objs(void);
 
 void TA_close_attest_obj(TEE_ObjectHandle attObj);
 
 TEE_Result TA_read_attest_cert(TEE_ObjectHandle attObj,
-						keymaster_cert_chain_t *cert_chain);
+			       keymaster_cert_chain_t *cert_chain);
 
-TEE_Result TA_generate_UniqueID(uint64_t T, uint8_t *appID,uint32_t appIDlen,
-		uint8_t R, uint8_t *uniqueID, uint32_t *uniqueIDlen);
+TEE_Result TA_generate_UniqueID(uint64_t T, uint8_t *appID, uint32_t appIDlen, uint8_t R,
+				uint8_t *uniqueID, uint32_t *uniqueIDlen);
 
 #endif /* ATTESTATION_H_ */

@@ -16,9 +16,7 @@
  */
 #include "shift.h"
 
-void TA_short_be_rshift(uint8_t *data,
-			const uint32_t data_l,
-			const uint32_t shift)
+void TA_short_be_rshift(uint8_t *data, const uint32_t data_l, const uint32_t shift)
 {
 	uint8_t prev = 0;
 	uint8_t next = 0;

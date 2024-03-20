@@ -31,16 +31,15 @@ TEE_Result TA_InitializeAuthTokenKey(void);
 
 keymaster_error_t TA_GetAuthTokenKey(TEE_Param params[TEE_NUM_PARAMS]);
 
-keymaster_error_t TA_check_auth_token(const uint64_t *suid,
-					const uint32_t suid_count,
-					const hw_authenticator_type_t auth_type,
-					const hw_auth_token_t *auth_token);
+keymaster_error_t TA_check_auth_token(const uint64_t *suid, const uint32_t suid_count,
+				      const hw_authenticator_type_t auth_type,
+				      const hw_auth_token_t *auth_token);
 
 keymaster_error_t TA_do_auth(const keymaster_key_param_set_t in_params,
-				const keymaster_key_param_set_t key_params);
+			     const keymaster_key_param_set_t key_params);
 
 #define HMAC_SHA256_KEY_SIZE_BYTE 32
-#define HMAC_SHA256_KEY_SIZE_BIT (8*HMAC_SHA256_KEY_SIZE_BYTE)
+#define HMAC_SHA256_KEY_SIZE_BIT (8 * HMAC_SHA256_KEY_SIZE_BYTE)
 #define HW_AUTH_TOKEN_VERSION 0
 
-#endif/*ANDROID_OPTEE_AUTH_H*/
+#endif /*ANDROID_OPTEE_AUTH_H*/

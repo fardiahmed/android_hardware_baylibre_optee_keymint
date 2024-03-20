@@ -40,12 +40,10 @@ typedef struct {
 	uint32_t min_sec;
 } keymaster_use_timer_t;
 
-keymaster_error_t TA_count_key_uses(uint8_t *key_id,
-				const uint32_t max_uses);
+keymaster_error_t TA_count_key_uses(uint8_t *key_id, const uint32_t max_uses);
 
 keymaster_error_t TA_trigger_timer(uint8_t *key_id);
 
-keymaster_error_t TA_check_key_use_timer(uint8_t *key_id,
-				const uint32_t min_sec);
+keymaster_error_t TA_check_key_use_timer(uint8_t *key_id, const uint32_t min_sec);
 
-#endif/* ANDROID_OPTEE_TABLES_H */
+#endif /* ANDROID_OPTEE_TABLES_H */

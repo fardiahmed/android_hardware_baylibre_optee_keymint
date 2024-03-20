@@ -33,8 +33,7 @@ void TA_free_blob_list(keymaster_blob_list_item_t *item)
 	}
 }
 
-keymaster_error_t TA_abort_operation(
-	const keymaster_operation_handle_t op_handle)
+keymaster_error_t TA_abort_operation(const keymaster_operation_handle_t op_handle)
 {
 	keymaster_error_t res = KM_ERROR_INVALID_OPERATION_HANDLE;
 
@@ -47,8 +46,7 @@ keymaster_error_t TA_abort_operation(
 			operations[i].op_handle = UNDEFINED;
 			if (operations[i].key != NULL) {
 				if (operations[i].key->key_material)
-					TEE_Free(operations[i].key->
-							key_material);
+					TEE_Free(operations[i].key->key_material);
 				TEE_Free(operations[i].key);
 			}
 			operations[i].key = NULL;
@@ -120,8 +118,7 @@ void TA_reset_operations_table(void)
 		operations[i].input_saved.data_length = 0;
 		operations[i].output_saved.data = NULL;
 		operations[i].output_saved.data_length = 0;
-		TEE_MemFill(operations[i].key_id, 0,
-			    sizeof(operations[i].key_id));
+		TEE_MemFill(operations[i].key_id, 0, sizeof(operations[i].key_id));
 	}
 }
 
@@ -131,12 +128,9 @@ keymaster_error_t TA_kill_old_operation(void)
 
 	oldest = operations[0];
 	for (uint32_t i = 1; i < KM_MAX_OPERATION; i++) {
-		if (oldest.last_access->seconds >
-				operations[i].last_access->seconds ||
-				(oldest.last_access->seconds ==
-				operations[i].last_access->seconds &&
-				oldest.last_access->millis >
-				operations[i].last_access->millis)) {
+		if (oldest.last_access->seconds > operations[i].last_access->seconds ||
+		    (oldest.last_access->seconds == operations[i].last_access->seconds &&
+		     oldest.last_access->millis > operations[i].last_access->millis)) {
 			oldest = operations[i];
 		}
 	}
@@ -144,19 +138,12 @@ keymaster_error_t TA_kill_old_operation(void)
 }
 
 keymaster_error_t TA_try_start_operation(
-				const keymaster_operation_handle_t op_handle,
-				const keymaster_key_blob_t key,
-				const uint32_t min_sec,
-				TEE_OperationHandle *operation,
-				const keymaster_purpose_t purpose,
-				TEE_OperationHandle *digest_op,
-				const bool do_auth,
-				const keymaster_padding_t padding,
-				const keymaster_block_mode_t mode,
-				const uint32_t mac_length,
-				const keymaster_digest_t digest,
-				const keymaster_blob_t nonce,
-				uint8_t *key_id)
+	const keymaster_operation_handle_t op_handle, const keymaster_key_blob_t key,
+	const uint32_t min_sec, TEE_OperationHandle *operation,
+	const keymaster_purpose_t purpose, TEE_OperationHandle *digest_op,
+	const bool do_auth, const keymaster_padding_t padding,
+	const keymaster_block_mode_t mode, const uint32_t mac_length,
+	const keymaster_digest_t digest, const keymaster_blob_t nonce, uint8_t *key_id)
 {
 	TEE_Time cur_t;
 
@@ -164,27 +151,23 @@ keymaster_error_t TA_try_start_operation(
 		if (operations[i].op_handle == UNDEFINED) {
 			TEE_GetSystemTime(&cur_t);
 			/* freed when operation aborted (TA_abort_operation) */
-			operations[i].key = TEE_Malloc(
-					sizeof(keymaster_key_blob_t),
-					TEE_MALLOC_FILL_ZERO);
+			operations[i].key = TEE_Malloc(sizeof(keymaster_key_blob_t),
+						       TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].key) {
 				EMSG("Failed to allocate memory for operation key struct");
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
-			operations[i].key->key_material_size =
-							key.key_material_size;
+			operations[i].key->key_material_size = key.key_material_size;
 			/* freed when operation aborted (TA_abort_operation) */
-			operations[i].key->key_material = TEE_Malloc(
-						key.key_material_size,
-						TEE_MALLOC_FILL_ZERO);
+			operations[i].key->key_material = TEE_Malloc(key.key_material_size,
+								     TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].key->key_material) {
 				EMSG("Failed to allocate memory for operation key data");
 				TEE_Free(operations[i].key);
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
-			TEE_MemMove(operations[i].key->key_material,
-						key.key_material,
-						key.key_material_size);
+			TEE_MemMove(operations[i].key->key_material, key.key_material,
+				    key.key_material_size);
 			operations[i].last_access = &cur_t;
 			operations[i].min_sec = min_sec;
 			operations[i].operation = operation;
@@ -195,21 +178,20 @@ keymaster_error_t TA_try_start_operation(
 			operations[i].padding = padding;
 			operations[i].mode = mode;
 			operations[i].digestLength = get_digest_size(&digest) / 8; /*in bytes*/
-			operations[i].nonce.data = TEE_Malloc(
-						nonce.data_length,
-						TEE_MALLOC_FILL_ZERO);
+			operations[i].nonce.data = TEE_Malloc(nonce.data_length,
+							      TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].nonce.data) {
 				EMSG("Failed to allocate memory for nonce");
 				TEE_Free(operations[i].key->key_material);
 				TEE_Free(operations[i].key);
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
-			TEE_MemMove(operations[i].nonce.data,
-					nonce.data, nonce.data_length);
+			TEE_MemMove(operations[i].nonce.data, nonce.data,
+				    nonce.data_length);
 			operations[i].nonce.data_length = nonce.data_length;
 			operations[i].op_handle = op_handle;
 			memcpy(operations[i].key_id, key_id,
-					sizeof(operations[i].key_id));
+			       sizeof(operations[i].key_id));
 			return KM_ERROR_OK;
 		}
 	}
@@ -217,41 +199,32 @@ keymaster_error_t TA_try_start_operation(
 }
 
 keymaster_error_t TA_start_operation(
-				const keymaster_operation_handle_t op_handle,
-				const keymaster_key_blob_t key, uint32_t min_sec,
-				TEE_OperationHandle *operation,
-				const keymaster_purpose_t purpose,
-				TEE_OperationHandle *digest_op,
-				const bool do_auth,
-				const keymaster_padding_t padding,
-				const keymaster_block_mode_t mode,
-				const uint32_t mac_length,
-				const keymaster_digest_t digest,
-				const keymaster_blob_t nonce,
-				uint8_t *key_id)
+	const keymaster_operation_handle_t op_handle,
+	const keymaster_key_blob_t key, uint32_t min_sec,
+	TEE_OperationHandle *operation, const keymaster_purpose_t purpose,
+	TEE_OperationHandle *digest_op, const bool do_auth,
+	const keymaster_padding_t padding, const keymaster_block_mode_t mode,
+	const uint32_t mac_length, const keymaster_digest_t digest,
+	const keymaster_blob_t nonce, uint8_t *key_id)
 {
-	keymaster_error_t res = TA_try_start_operation(op_handle, key, min_sec,
-						       operation, purpose,
-						       digest_op, do_auth,
-						       padding, mode,
-						       mac_length, digest,
+	keymaster_error_t res = TA_try_start_operation(op_handle, key, min_sec, operation,
+						       purpose, digest_op, do_auth,
+						       padding, mode, mac_length, digest,
 						       nonce, key_id);
 	if (res != KM_ERROR_OK) {
 		res = TA_kill_old_operation();
 		if (res == KM_ERROR_OK) {
-			res = TA_try_start_operation(op_handle, key, min_sec,
-						     operation, purpose,
-						     digest_op, do_auth,
-						     padding, mode,
-						     mac_length, digest,
-						     nonce, key_id);
+			res = TA_try_start_operation(op_handle, key, min_sec, operation,
+						     purpose, digest_op, do_auth, padding,
+						     mode, mac_length, digest, nonce,
+						     key_id);
 		}
 	}
 	return res;
 }
 
 keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
-					keymaster_operation_t **operation)
+				   keymaster_operation_t **operation)
 {
 	keymaster_error_t res = KM_ERROR_INVALID_OPERATION_HANDLE;
 	TEE_Time cur_t;
@@ -269,7 +242,7 @@ keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
 }
 
 keymaster_error_t TA_update_operation(keymaster_operation_handle_t op_handle,
-					keymaster_operation_t *operation)
+				      keymaster_operation_t *operation)
 {
 	keymaster_error_t res = KM_ERROR_INVALID_OPERATION_HANDLE;
 
@@ -283,13 +256,12 @@ keymaster_error_t TA_update_operation(keymaster_operation_handle_t op_handle,
 }
 
 keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
-					keymaster_operation_t *operation)
+				   keymaster_operation_t *operation)
 {
 	keymaster_blob_list_item_t *new;
 	keymaster_blob_list_item_t *current = operation->sf_item;
 	/* freed when operation is aborted (TA_abort_operation) */
-	new = TEE_Malloc(sizeof(keymaster_blob_list_item_t),
-					TEE_MALLOC_FILL_ZERO);
+	new = TEE_Malloc(sizeof(keymaster_blob_list_item_t), TEE_MALLOC_FILL_ZERO);
 	if (!new) {
 		EMSG("Failed to allocate memory for buffered sign/veify data struct");
 		return KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -297,8 +269,7 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 	new->next = NULL;
 	new->data.data_length = input->data_length;
 	/* freed when operation is aborted (TA_abort_operation) */
-	new->data.data = TEE_Malloc(new->data.data_length,
-						TEE_MALLOC_FILL_ZERO);
+	new->data.data = TEE_Malloc(new->data.data_length, TEE_MALLOC_FILL_ZERO);
 	if (!new->data.data) {
 		EMSG("Failed to allocate memory for buffered sign/veify data");
 		TEE_Free(new);
@@ -320,8 +291,8 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 }
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
-				const keymaster_operation_t *operation,
-				bool *input_allocate_memory)
+				    const keymaster_operation_t *operation,
+				    bool *input_allocate_memory)
 {
 	uint32_t size = 0;
 	uint32_t padding = 0;
@@ -359,8 +330,7 @@ keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
 
 	current = operation->sf_item;
 	while (current != NULL) {
-		TEE_MemMove(ptr + padding, current->data.data,
-						current->data.data_length);
+		TEE_MemMove(ptr + padding, current->data.data, current->data.data_length);
 		padding += current->data.data_length;
 		current = current->next;
 	}

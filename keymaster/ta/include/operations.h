@@ -43,7 +43,7 @@ typedef struct {
 	keymaster_purpose_t purpose;
 	keymaster_padding_t padding;
 	keymaster_block_mode_t mode;
-	keymaster_blob_list_item_t *sf_item;/*sign/verify data*/
+	keymaster_blob_list_item_t *sf_item; /*sign/verify data*/
 	TEE_Time *last_access;
 	TEE_OperationHandle *operation;
 	TEE_OperationHandle *digest_op;
@@ -59,52 +59,38 @@ typedef struct {
 void TA_free_blob_list(keymaster_blob_list_item_t *item);
 
 keymaster_error_t TA_try_start_operation(
-				const keymaster_operation_handle_t op_handle,
-				const keymaster_key_blob_t key,
-				const uint32_t min_sec,
-				TEE_OperationHandle *operation,
-				const keymaster_purpose_t purpose,
-				TEE_OperationHandle *digest_op,
-				const bool do_auth,
-				const keymaster_padding_t padding,
-				const keymaster_block_mode_t mode,
-				const uint32_t mac_length,
-				const keymaster_digest_t digest,
-				const keymaster_blob_t nonce,
-				uint8_t *key_id);
+	const keymaster_operation_handle_t op_handle, const keymaster_key_blob_t key,
+	const uint32_t min_sec, TEE_OperationHandle *operation,
+	const keymaster_purpose_t purpose, TEE_OperationHandle *digest_op,
+	const bool do_auth, const keymaster_padding_t padding,
+	const keymaster_block_mode_t mode, const uint32_t mac_length,
+	const keymaster_digest_t digest, const keymaster_blob_t nonce, uint8_t *key_id);
 
 keymaster_error_t TA_start_operation(
-				const keymaster_operation_handle_t op_handle,
-				const keymaster_key_blob_t key,
-				const uint32_t min_sec,
-				TEE_OperationHandle *operation,
-				const keymaster_purpose_t purpose,
-				TEE_OperationHandle *digest_op,
-				const bool do_auth,
-				const keymaster_padding_t padding,
-				const keymaster_block_mode_t mode,
-				const uint32_t mac_length,
-				const keymaster_digest_t digest,
-				const keymaster_blob_t nonce,
-				uint8_t *key_id);
+	const keymaster_operation_handle_t op_handle,
+	const keymaster_key_blob_t key, const uint32_t min_sec,
+	TEE_OperationHandle *operation, const keymaster_purpose_t purpose,
+	TEE_OperationHandle *digest_op, const bool do_auth,
+	const keymaster_padding_t padding, const keymaster_block_mode_t mode,
+	const uint32_t mac_length, const keymaster_digest_t digest,
+	const keymaster_blob_t nonce, uint8_t *key_id);
 
 keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
-				keymaster_operation_t **operation);
+				   keymaster_operation_t **operation);
 
 keymaster_error_t TA_update_operation(const keymaster_operation_handle_t op_handle,
-				keymaster_operation_t *operation);
+				      keymaster_operation_t *operation);
 
 keymaster_error_t TA_kill_old_operation(void);
 
-keymaster_error_t TA_abort_operation(
-	const keymaster_operation_handle_t op_handle);
+keymaster_error_t TA_abort_operation(const keymaster_operation_handle_t op_handle);
 
 keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
-				keymaster_operation_t *operation);
+				   keymaster_operation_t *operation);
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
-				const keymaster_operation_t *operation,
-				bool *input_allocate_memory);
+				    const keymaster_operation_t *operation,
+				    bool *input_allocate_memory);
 
 void TA_add_to_nonce(keymaster_operation_t *operation, const uint64_t value);
 
@@ -112,4 +98,4 @@ void TA_decriment_nonce(keymaster_operation_t *operation);
 
 void TA_reset_operations_table(void);
 
-#endif  /* ANDROID_OPTEE_OPERATIONS_H */
+#endif /* ANDROID_OPTEE_OPERATIONS_H */

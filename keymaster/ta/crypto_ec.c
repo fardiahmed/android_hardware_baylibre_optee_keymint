@@ -19,7 +19,7 @@
 #include "mbedtls_proxy.h"
 
 static keymaster_error_t TA_check_ec_data_size(uint8_t **data, uint32_t *data_l,
-				const uint32_t key_size)
+					       const uint32_t key_size)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint32_t key_size_bytes = (key_size + 7) / 8;
@@ -38,8 +38,7 @@ static keymaster_error_t TA_check_ec_data_size(uint8_t **data, uint32_t *data_l,
 		}
 		*data_l = key_size_bytes;
 		if (key_size < *data_l * 8) {
-			TA_short_be_rshift(*data, *data_l,
-				8 - (key_size & 0x7));
+			TA_short_be_rshift(*data, *data_l, 8 - (key_size & 0x7));
 		}
 	}
 
@@ -47,10 +46,8 @@ static keymaster_error_t TA_check_ec_data_size(uint8_t **data, uint32_t *data_l,
 }
 
 keymaster_error_t TA_ec_update(keymaster_operation_t *operation,
-				const keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				size_t *input_consumed,
-				const uint32_t input_provided)
+			       const keymaster_blob_t *input, keymaster_blob_t *output,
+			       size_t *input_consumed, const uint32_t input_provided)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 
@@ -59,7 +56,7 @@ keymaster_error_t TA_ec_update(keymaster_operation_t *operation,
 	case KM_PURPOSE_SIGN:
 		if (*operation->digest_op != TEE_HANDLE_NULL) {
 			TEE_DigestUpdate(*operation->digest_op, input->data,
-							input->data_length);
+					 input->data_length);
 		} else {
 			/* if digest is not specified save all
 			 * blocks to use it in finish
@@ -76,12 +73,9 @@ keymaster_error_t TA_ec_update(keymaster_operation_t *operation,
 }
 
 keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
-				keymaster_blob_t *input,
-				keymaster_blob_t *output,
-				keymaster_blob_t *signature,
-				uint32_t *out_size,
-				const uint32_t key_size,
-				bool *input_allocate_memory)
+			       keymaster_blob_t *input, keymaster_blob_t *output,
+			       keymaster_blob_t *signature, uint32_t *out_size,
+			       const uint32_t key_size, bool *input_allocate_memory)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint32_t digest_out_size = KM_MAX_DIGEST_SIZE;
@@ -93,11 +87,9 @@ keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
 	case KM_PURPOSE_VERIFY:
 	case KM_PURPOSE_SIGN:
 		if (*operation->digest_op != TEE_HANDLE_NULL) {
-			res = TEE_DigestDoFinal(*operation->digest_op,
-					input->data,
-					input->data_length,
-					digest_out,
-					&digest_out_size);
+			res = TEE_DigestDoFinal(*operation->digest_op, input->data,
+						input->data_length, digest_out,
+						&digest_out_size);
 			if (res != KM_ERROR_OK) {
 				EMSG("Failed to obtain digest for EC, res=%x", res);
 				break;
@@ -122,16 +114,13 @@ keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
 			break;
 
 		if (operation->purpose == KM_PURPOSE_SIGN) {
-			res = TEE_AsymmetricSignDigest(*operation->operation,
-							NULL, 0, in_buf,
-							in_buf_l, output->data,
-							out_size);
+			res = TEE_AsymmetricSignDigest(*operation->operation, NULL, 0,
+						       in_buf, in_buf_l, output->data,
+						       out_size);
 			if (res == TEE_SUCCESS && *out_size > 0) {
-				res = mbedTLS_encode_ec_sign(output->data,
-							     out_size);
+				res = mbedTLS_encode_ec_sign(output->data, out_size);
 				if (res != KM_ERROR_OK) {
-					EMSG("Failed to encode EC sign, res=%x",
-					     res);
+					EMSG("Failed to encode EC sign, res=%x", res);
 					break;
 				}
 			}
@@ -142,13 +131,12 @@ keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
 				EMSG("Failed to decode EC sign, res=%x", res);
 				break;
 			}
-			res = TEE_AsymmetricVerifyDigest(*operation->operation,
-							NULL, 0, in_buf,
-							in_buf_l,
-							signature->data,
-							signature->data_length);
+			res = TEE_AsymmetricVerifyDigest(*operation->operation, NULL, 0,
+							 in_buf, in_buf_l,
+							 signature->data,
+							 signature->data_length);
 			/* Convert error code to Android style */
-			if (res == (int) TEE_ERROR_SIGNATURE_INVALID)
+			if (res == (int)TEE_ERROR_SIGNATURE_INVALID)
 				res = KM_ERROR_VERIFICATION_FAILED;
 		}
 		break;

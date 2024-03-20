@@ -26,17 +26,13 @@
 
 #include "ta_ca_defs.h"
 
-keymaster_error_t TA_check_out_size(const uint32_t input_l,
-					keymaster_blob_t *output,
-					uint32_t *out_size,
-					uint32_t tag_len);
+keymaster_error_t TA_check_out_size(const uint32_t input_l, keymaster_blob_t *output,
+				    uint32_t *out_size, uint32_t tag_len);
 
-keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input,
-				const bool force, keymaster_blob_t *output,
-				uint32_t *out_size);
+keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input, const bool force,
+				   keymaster_blob_t *output, uint32_t *out_size);
 
-keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output,
-					uint32_t *out_size);
+keymaster_error_t TA_remove_pkcs7_pad(keymaster_blob_t *output, uint32_t *out_size);
 
 bool TA_check_pkcs7_pad(keymaster_blob_t *output);
 
@@ -46,4 +42,4 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
 keymaster_error_t TA_do_rsa_pkcs_v1_5_rawpad(uint8_t **input, uint32_t *input_l,
 					     const uint32_t key_size);
 
-#endif/* ANDROID_OPTEE_PADDINGS_H */
+#endif /* ANDROID_OPTEE_PADDINGS_H */
