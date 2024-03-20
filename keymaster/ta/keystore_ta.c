@@ -270,6 +270,24 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	return KM_ERROR_OK;
 }
 
+static keymaster_error_t TA_getVersion2(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *out;
+
+	DMSG("%s %d", __func__, __LINE__);
+
+	out = (uint8_t *)params[1].memref.buffer;
+	out += sizeof(keymaster_error_t);
+
+        /* current version Keymint 3 */
+        keymaster_version2_t version2 = { 4, KEYMINT_3, 0 };
+        TEE_MemMove(out, &version2, sizeof(keymaster_version_t));
+
+        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+
+	return KM_ERROR_OK;
+}
+
 /* Adds caller-provided entropy to the pool */
 static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS])
 {
@@ -1762,6 +1780,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		DMSG("KM_DESTROY_ATTESTATION_IDS");
 		error = TA_stubOperation(params);
 		break;
+	case KM_GET_VERSION_2:
+		DMSG("KM_GET_VERSION_2");
+		error = TA_getVersion2(params);
+		break;
 	case KM_GET_SUPPORTED_ALGORITHMS:
 	case KM_GET_SUPPORTED_BLOCK_MODES:
 	case KM_GET_SUPPORTED_PADDING_MODES:
@@ -1772,7 +1794,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_COMPUTE_SHARED_HMAC:
 	case KM_VERIFY_AUTHORIZATION:
 	case KM_IMPORT_WRAPPED_KEY:
-	case KM_GET_VERSION_2:
 	case KM_EARLY_BOOT_ENDED:
 	case KM_DEVICE_LOCKED:
 	case KM_GENERATE_RKP_KEY:

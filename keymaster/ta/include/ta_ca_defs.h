@@ -317,6 +317,24 @@ typedef struct {
 	uint8_t subminor_ver;
 } keymaster_version_t;
 
+enum KmVersion {
+    KEYMASTER_1 = 10,
+    KEYMASTER_1_1 = 11,
+    KEYMASTER_2 = 20,
+    KEYMASTER_3 = 30,
+    KEYMASTER_4 = 40,
+    KEYMASTER_4_1 = 41,
+    KEYMINT_1 = 100,
+    KEYMINT_2 = 200,
+    KEYMINT_3 = 300,
+};
+
+typedef struct {
+	uint32_t max_message_version;
+	enum KmVersion km_version;
+	uint32_t km_date;
+} keymaster_version2_t;
+
 /**
  * Parameters that define a key's characteristics, including authorized modes of usage and access
  * control restrictions.  The parameters are divided into two categories, those that are enforced by
