@@ -323,7 +323,8 @@ static keymaster_error_t TA_getVersion2(TEE_Param params[TEE_NUM_PARAMS])
 
         /* current version Keymint 3 */
         keymaster_version2_t version2 = { 4, KEYMINT_3, 0 };
-        TEE_MemMove(out, &version2, sizeof(keymaster_version_t));
+        TEE_MemMove(out, &version2, sizeof(keymaster_version2_t));
+	out += sizeof(keymaster_version2_t);
 
         params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
