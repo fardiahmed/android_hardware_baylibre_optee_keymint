@@ -75,11 +75,6 @@ const uint32_t cert_version = 2; /* x509 version of cert. v3 used. */
 const uint32_t cert_version_tag; /* tag value for version field. */
 const uint32_t cert_serial_number = 1; /* serialNumber of cert. */
 
-enum SecurityLevel {
-	Software = 0,
-	TrustedEnvironment,
-};
-
 enum BootState { Verified = 0, SelfSigned, Unverified, Failed };
 
 /* Stubs for hash values used in RottOfTrust */
@@ -2129,13 +2124,13 @@ static keymaster_error_t mbedTLS_gen_att_extension(keymaster_key_characteristics
 	}
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_enum(&p, start, TrustedEnvironment));
+			     mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
 			     mbedtls_asn1_write_int(&p, start, KEYMASTER_VERSION));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_enum(&p, start, TrustedEnvironment));
+			     mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
 			     mbedtls_asn1_write_int(&p, start, ATTESTATION_VERSION));

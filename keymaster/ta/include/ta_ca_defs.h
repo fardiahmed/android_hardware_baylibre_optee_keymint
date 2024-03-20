@@ -362,6 +362,12 @@ typedef struct {
 	size_t entry_count;
 } keymaster_cert_chain_t;
 
+typedef enum {
+    KM_SECURITY_LEVEL_SOFTWARE = 0,
+    KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT = 1,
+    KM_SECURITY_LEVEL_STRONGBOX = 2,
+} keymaster_security_level_t;
+
 /**
  * Formats for key import and export.
  */
