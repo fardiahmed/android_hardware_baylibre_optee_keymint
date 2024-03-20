@@ -1784,6 +1784,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		DMSG("KM_GET_VERSION_2");
 		error = TA_getVersion2(params);
 		break;
+	case KM_CONFIGURE_VENDOR_PATCHLEVEL:
+		DMSG("KM_CONFIGURE_VENDOR_PATCHLEVEL");
+		error = TA_stubOperation();
+		break;
 	case KM_GET_SUPPORTED_ALGORITHMS:
 	case KM_GET_SUPPORTED_BLOCK_MODES:
 	case KM_GET_SUPPORTED_PADDING_MODES:
@@ -1798,7 +1802,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_DEVICE_LOCKED:
 	case KM_GENERATE_RKP_KEY:
 	case KM_GENERATE_CSR:
-	case KM_CONFIGURE_VENDOR_PATCHLEVEL:
 	case KM_GET_ROOT_OF_TRUST:
 	case KM_GET_HW_INFO:
 	case KM_GENERATE_CSR_V2:
