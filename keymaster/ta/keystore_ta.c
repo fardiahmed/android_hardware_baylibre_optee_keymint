@@ -1952,20 +1952,20 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_DELETE_ALL_KEYS:
 		DMSG("KM_DELETE_ALL_KEYS");
 		return TA_deleteAllKeys(params);
-	case KM_DESTROY_ATT_IDS:
-		DMSG("KM_DESTROY_ATT_IDS");
+	case KM_DESTROY_ATTESTATION_IDS:
+		DMSG("KM_DESTROY_ATTESTATION_IDS");
 		return TA_destroyAttestationIds(params);
-	case KM_BEGIN:
-		DMSG("KM_BEGIN");
+	case KM_BEGIN_OPERATION:
+		DMSG("KM_BEGIN_OPERATION");
 		return TA_begin(params);
-	case KM_UPDATE:
-		DMSG("KM_UPDATE");
+	case KM_UPDATE_OPERATION:
+		DMSG("KM_UPDATE_OPERATION");
 		return TA_update(params);
-	case KM_FINISH:
-		DMSG("KM_FINISH");
+	case KM_FINISH_OPERATION:
+		DMSG("KM_FINISH_OPERATION");
 		return TA_finish(params);
-	case KM_ABORT:
-		DMSG("KM_ABORT");
+	case KM_ABORT_OPERATION:
+		DMSG("KM_ABORT_OPERATION");
 		return TA_abort(params);
 #ifdef CFG_ATTESTATION_PROVISIONING
 	/* Provisioning commands */
