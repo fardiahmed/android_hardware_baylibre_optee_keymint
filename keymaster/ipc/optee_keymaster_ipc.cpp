@@ -41,20 +41,20 @@ int optee_keymaster_connect(void) {
 
     if (connected) {
         ALOGW("Connection with trustled application already established");
-        return false;
+        return 0;
     }
 
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
         ALOGE("TEEC_InitializeContext failed with code 0x%x", res);
-        return res;
+        return -EIO;
     }
 
     /* Open a session to the TA */
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
         ALOGE("TEEC_Opensession failed with code 0x%x origin 0x%x", res, err_origin);
-        return res;
+        return -EIO;
     }
     connected = true;
     ALOGI("Connection with keystore was established");
