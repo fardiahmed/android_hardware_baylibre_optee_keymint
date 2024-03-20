@@ -206,6 +206,34 @@ static uint32_t tee_get_os_patchlevel(void)
 	return optee_km_context.os_patchlevel;
 }
 
+static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PARAMS])
+{
+	static hmac_sharing_parameters_t *hmac_saved_parameters = NULL;
+	uint8_t *out = NULL;
+
+	DMSG("%s %d", __func__, __LINE__);
+
+	out = (uint8_t *)params[1].memref.buffer;
+	out += sizeof(keymaster_error_t);
+
+	if (hmac_saved_parameters == NULL) {
+		hmac_saved_parameters = TEE_Malloc(sizeof(hmac_sharing_parameters_t),
+						   TEE_MALLOC_FILL_ZERO);
+		if (!hmac_saved_parameters) {
+			EMSG("%s: failed to allocate memory", __func__);
+			return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		}
+
+		TEE_GenerateRandom(hmac_saved_parameters->nonce, 32);
+	}
+
+	TEE_MemMove(out, hmac_saved_parameters, sizeof(hmac_sharing_parameters_t));
+
+        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+
+	return KM_ERROR_OK;
+}
+
 static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 {
 	uint8_t *in = NULL;
@@ -1768,6 +1796,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		DMSG("KM_CONFIGURE");
 		error = TA_configure(params);
 		break;
+	case KM_GET_HMAC_SHARING_PARAMETERS:
+		DMSG("KM_GET_HMAC_SHARING_PARAMETERS");
+		error = TA_getHmacSharingParameters(params);
+		break;
 	case KM_DELETE_KEY:
 		DMSG("KM_DELETE_KEY");
 		error = TA_stubOperation(params);
@@ -1786,7 +1818,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		break;
 	case KM_CONFIGURE_VENDOR_PATCHLEVEL:
 		DMSG("KM_CONFIGURE_VENDOR_PATCHLEVEL");
-		error = TA_stubOperation();
+		error = TA_stubOperation(params);
 		break;
 	case KM_GET_SUPPORTED_ALGORITHMS:
 	case KM_GET_SUPPORTED_BLOCK_MODES:
@@ -1794,7 +1826,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_GET_SUPPORTED_DIGESTS:
 	case KM_GET_SUPPORTED_IMPORT_FORMATS:
 	case KM_GET_SUPPORTED_EXPORT_FORMATS:
-	case KM_GET_HMAC_SHARING_PARAMETERS:
 	case KM_COMPUTE_SHARED_HMAC:
 	case KM_VERIFY_AUTHORIZATION:
 	case KM_IMPORT_WRAPPED_KEY:

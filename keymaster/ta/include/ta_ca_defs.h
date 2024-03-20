@@ -307,6 +307,11 @@ typedef struct {
 } keymaster_key_param_t;
 
 typedef struct {
+	keymaster_blob_t seed;
+	uint8_t nonce[32];
+} hmac_sharing_parameters_t;
+
+typedef struct {
 	keymaster_key_param_t *params; /* may be NULL if length == 0 */
 	size_t length;
 } keymaster_key_param_set_t;
