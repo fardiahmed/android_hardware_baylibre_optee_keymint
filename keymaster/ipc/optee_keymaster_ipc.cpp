@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
+#define LOG_TAG "OpteeKeymaster_ipc"
+#include <android-base/logging.h>
+
 #include <errno.h>
 #include <hardware/keymaster2.h>
-#include <log/log.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,8 +27,6 @@
 
 #include <optee_keymaster/ipc/optee_keymaster_ipc.h>
 
-#undef LOG_TAG
-#define LOG_TAG "OpteeKeymaster_ipc"
 #define TA_KEYMASTER_UUID { 0xdba51a17, 0x0563, 0x11e7, \
                           { 0x93, 0xb1, 0x6f, 0xa7, 0xb0, 0x07, 0x1a, 0x51} }
 
@@ -40,24 +40,25 @@ int optee_keymaster_connect(void) {
     uint32_t err_origin;
 
     if (connected) {
-        ALOGW("Connection with trustled application already established");
+        LOG(WARNING) << "Connection with trustled application already established";
         return 0;
     }
 
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
-        ALOGE("TEEC_InitializeContext failed with code 0x%x", res);
+        LOG(ERROR) << "TEEC_InitializeContext failed with code 0x" << std::hex << res;
         return -EIO;
     }
 
     /* Open a session to the TA */
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
-        ALOGE("TEEC_Opensession failed with code 0x%x origin 0x%x", res, err_origin);
+        LOG(ERROR) << "TEEC_Opensession failed with code 0x" << std::hex << res
+                   << " origin 0x" << std::hex << err_origin;
         return -EIO;
     }
     connected = true;
-    ALOGI("Connection with keystore was established");
+    LOG(INFO) << "Connection with keystore was established";
     return 0;
 }
 
@@ -193,7 +194,7 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
     uint32_t err_origin;
 
     if (!connected) {
-        ALOGE("Keystore trusted application is not connected");
+        LOG(ERROR) << "Keystore trusted application is not connected";
         return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
     }
 
@@ -201,7 +202,8 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
 
     uint32_t req_size = req.SerializedSize();
     if (req_size > OPTEE_KEYMASTER_SEND_BUF_SIZE) {
-        ALOGE("Request too big: %u Max size: %u", req_size, OPTEE_KEYMASTER_SEND_BUF_SIZE);
+        LOG(ERROR) << "Request too big: " << req_size
+                   << " Max size: " << OPTEE_KEYMASTER_SEND_BUF_SIZE;
         return KM_ERROR_INVALID_INPUT_LENGTH;
     }
 
@@ -222,8 +224,9 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
 
     res = TEEC_InvokeCommand(&sess, command, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
-        ALOGE("TEEC_InvokeCommand command %d failed with code 0x%08x origin 0x%08x",
-              command, res, err_origin);
+        LOG(ERROR) << "TEEC_InvokeCommand command " << command
+                   << " failed with code 0x" << res
+                   << " origin 0x" << err_origin;
         if (res == TEEC_ERROR_TARGET_DEAD) {
             optee_keymaster_disconnect();
             optee_keymaster_connect();
@@ -235,10 +238,10 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
 
     const uint8_t* p = recv_buf;
     if (!rsp->Deserialize(&p, p + rsp_size)) {
-        ALOGE("Error deserializing response of size %d\n", rsp_size);
+        LOG(ERROR) << "Error deserializing response of size " << rsp_size;
         return KM_ERROR_UNKNOWN_ERROR;
     } else if (rsp->error != KM_ERROR_OK) {
-        ALOGW("Response contained error code: %s\n", keymaster_error_message(rsp->error));
+        LOG(WARNING) << "Response contained error code: " << keymaster_error_message(rsp->error);
     }
 
     return rsp->error;
