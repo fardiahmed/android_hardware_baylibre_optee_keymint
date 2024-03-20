@@ -40,7 +40,7 @@ int optee_keymaster_connect(void) {
     uint32_t err_origin;
 
     if (connected) {
-        ALOGE("Connection with trustled application already established");
+        ALOGW("Connection with trustled application already established");
         return false;
     }
 
