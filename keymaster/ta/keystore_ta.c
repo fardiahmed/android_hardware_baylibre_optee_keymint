@@ -247,6 +247,108 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 	return KM_ERROR_OK;
 }
 
+static keymaster_error_t TA_verifyAuthorization(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *in = NULL;
+	uint8_t *in_end = NULL;
+	size_t in_size = 0;
+	uint8_t *out = NULL;
+	uint8_t *out_end = NULL;
+	size_t out_size = 0;
+	uint64_t challenge = UNDEFINED;
+	keymaster_key_param_set_t params_t = EMPTY_PARAM_SET;
+	keymaster_error_t error = KM_ERROR_OK;
+	keymaster_blob_t hmac = EMPTY_BLOB;
+	hw_auth_token_t auth_token;
+	keymaster_security_level_t security_level;
+	uint64_t millis;
+	bool oob = false; /* out of bounds flag */
+	TEE_Time time;
+	TEE_Result res;
+
+	DMSG("%s %d", __func__, __LINE__);
+
+	in = (uint8_t *)params[0].memref.buffer;
+	in_size = (size_t)params[0].memref.size;
+	in_end = in + in_size;
+
+	out = (uint8_t *)params[1].memref.buffer;
+	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
+	out_end = out + out_size;
+
+	out += sizeof(keymaster_error_t);
+
+	TEE_MemMove(&challenge, in, sizeof(uint64_t));
+	in += sizeof(uint64_t);
+
+	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &error);
+	if (error != KM_ERROR_OK)
+		goto exit;
+
+	TEE_MemMove(&auth_token.challenge, in, sizeof(hw_auth_token_t));
+	in += sizeof(hw_auth_token_t);
+
+	auth_token.challenge = challenge;
+
+	/*
+	 * WORKAROUND: add error code to data buffer
+	 * VerifyAuthorizationResponse() expects the data buffer to also contain the error response
+	 * See: https://android.googlesource.com/platform/system/keymaster/+/refs/tags/android-14.0.0_r1/include/keymaster/android_keymaster_messages.h#1010
+	 */
+	keymaster_error_t error_tmp = KM_ERROR_OK;
+	TEE_MemMove(out, &error_tmp, sizeof(uint32_t));
+	out += sizeof(uint32_t);
+
+	TEE_MemMove(out, &challenge, sizeof(uint64_t));
+	out += sizeof(uint64_t);
+
+	TEE_GetSystemTime(&time);
+	millis = (time.seconds * 1000) + time.millis;
+	TEE_MemMove(out, &millis, sizeof(uint64_t));
+	out += sizeof(uint64_t);
+
+	out += TA_serialize_auth_set(out, out_end, &params_t, &oob);
+	if (oob) {
+		EMSG("Out of output buffer space");
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		goto exit;
+	}
+
+	security_level = KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT;
+	TEE_MemMove(out, &security_level, sizeof(uint32_t));
+	out += sizeof(uint32_t);
+
+	/* Token HMAC */
+	hmac.data_length = 32;
+	hmac.data = TEE_Malloc(hmac.data_length, TEE_MALLOC_FILL_ZERO);
+	if (!hmac.data) {
+		EMSG("Failed to allocate memory for hmac");
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		goto exit;
+	}
+
+	res = TA_computeTokenHmac(&auth_token, hmac.data, 32);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to compute HMAC of token");
+		error = KM_ERROR_OPERATION_CANCELLED;
+		goto free_hmac_data;
+	}
+
+	out += TA_serialize_blob_akms(out, out_end, &hmac, &oob);
+	if (oob) {
+		EMSG("Out of output buffer space");
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		goto free_hmac_data;
+	}
+
+free_hmac_data:
+	free(hmac.data);
+exit:
+        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+
+	return error;
+}
+
 static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 {
 	uint8_t *in = NULL;
@@ -1815,6 +1917,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		DMSG("KM_GET_HMAC_SHARING_PARAMETERS");
 		error = TA_getHmacSharingParameters(params);
 		break;
+	case KM_VERIFY_AUTHORIZATION:
+		DMSG("KM_VERIFY_AUTHORIZATION");
+		error = TA_verifyAuthorization(params);
+		break;
 	case KM_DELETE_KEY:
 		DMSG("KM_DELETE_KEY");
 		error = TA_stubOperation(params);
@@ -1842,7 +1948,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_GET_SUPPORTED_IMPORT_FORMATS:
 	case KM_GET_SUPPORTED_EXPORT_FORMATS:
 	case KM_COMPUTE_SHARED_HMAC:
-	case KM_VERIFY_AUTHORIZATION:
 	case KM_IMPORT_WRAPPED_KEY:
 	case KM_EARLY_BOOT_ENDED:
 	case KM_DEVICE_LOCKED:
