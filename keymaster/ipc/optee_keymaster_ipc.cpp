@@ -16,12 +16,12 @@
  */
 
 #include <errno.h>
+#include <hardware/keymaster2.h>
+#include <log/log.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <log/log.h>
 #include <tee_client_api.h>
-#include <hardware/keymaster2.h>
 
 #include <optee_keymaster/ipc/optee_keymaster_ipc.h>
 
@@ -51,11 +51,9 @@ int optee_keymaster_connect(void) {
     }
 
     /* Open a session to the TA */
-    res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC,
-            NULL, NULL, &err_origin);
+    res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
-        ALOGE("TEEC_Opensession failed with code 0x%x origin 0x%x",
-                res, err_origin);
+        ALOGE("TEEC_Opensession failed with code 0x%x origin 0x%x", res, err_origin);
         return (int)res;
     }
     connected = true;
@@ -70,7 +68,7 @@ void optee_keymaster_disconnect(void) {
 }
 
 const char* keymaster_error_message(uint32_t error) {
-    switch((int)error) {
+    switch ((int)error) {
         case (KM_ERROR_OK):
             return "No error";
         case (KM_ERROR_UNSUPPORTED_PURPOSE):
@@ -195,17 +193,16 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
     uint32_t err_origin;
 
     if (!connected) {
-	ALOGE("Keystore trusted application is not connected");
-	return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+        ALOGE("Keystore trusted application is not connected");
+        return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
     }
 
     (void)memset(&op, 0, sizeof(op));
 
     uint32_t req_size = req.SerializedSize();
     if (req_size > OPTEE_KEYMASTER_SEND_BUF_SIZE) {
-	ALOGE("Request too big: %u Max size: %u", req_size,
-	      OPTEE_KEYMASTER_SEND_BUF_SIZE);
-	return KM_ERROR_INVALID_INPUT_LENGTH;
+        ALOGE("Request too big: %u Max size: %u", req_size, OPTEE_KEYMASTER_SEND_BUF_SIZE);
+        return KM_ERROR_INVALID_INPUT_LENGTH;
     }
 
     uint8_t send_buf[OPTEE_KEYMASTER_SEND_BUF_SIZE];
@@ -216,46 +213,43 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
     uint8_t recv_buf[OPTEE_KEYMASTER_RECV_BUF_SIZE];
     keymaster::Eraser recv_buf_eraser(recv_buf, OPTEE_KEYMASTER_RECV_BUF_SIZE);
     uint32_t rsp_size = OPTEE_KEYMASTER_RECV_BUF_SIZE;
-    op.paramTypes = (uint32_t)TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-					       TEEC_MEMREF_TEMP_OUTPUT,
-					       TEEC_NONE,
-					       TEEC_NONE);
-	op.params[0].tmpref.buffer = (void*)send_buf;
-	op.params[0].tmpref.size   = req_size;
-	op.params[1].tmpref.buffer = (void*)recv_buf;
-	op.params[1].tmpref.size   = rsp_size;
+    op.paramTypes = (uint32_t)TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_OUTPUT,
+                                               TEEC_NONE, TEEC_NONE);
+    op.params[0].tmpref.buffer = (void*)send_buf;
+    op.params[0].tmpref.size = req_size;
+    op.params[1].tmpref.buffer = (void*)recv_buf;
+    op.params[1].tmpref.size = rsp_size;
 
     res = TEEC_InvokeCommand(&sess, command, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
-	ALOGI("TEEC_InvokeCommand command %d failed with code 0x%08x (%s) origin "
-	      "0x%08x", command, res, keymaster_error_message(res), err_origin);
-	if (res == TEEC_ERROR_TARGET_DEAD) {
-		optee_keymaster_disconnect();
-		optee_keymaster_connect();
-	}
+        ALOGI("TEEC_InvokeCommand command %d failed with code 0x%08x (%s) origin "
+              "0x%08x",
+              command, res, keymaster_error_message(res), err_origin);
+        if (res == TEEC_ERROR_TARGET_DEAD) {
+            optee_keymaster_disconnect();
+            optee_keymaster_connect();
+        }
     }
 
     const uint8_t* p = recv_buf;
     if (!rsp->Deserialize(&p, p + rsp_size)) {
-	ALOGE("Error deserializing response of size %d\n", (int)rsp_size);
-	return KM_ERROR_UNKNOWN_ERROR;
+        ALOGE("Error deserializing response of size %d\n", (int)rsp_size);
+        return KM_ERROR_UNKNOWN_ERROR;
     } else if (rsp->error != KM_ERROR_OK) {
-	ALOGE("Response of size %d contained error code %d\n", (int)rsp_size,
-	      (int)rsp->error);
+        ALOGE("Response of size %d contained error code %d\n", (int)rsp_size, (int)rsp->error);
     } else if (res != KM_ERROR_OK) {
-	/*
-	 * rsp->error is KM_ERROR_OK but res isn't? This happens when:
-	 * 1. param_types != exp_param_types in TA_InvokeCommandEntryPoint()
-	 * 2. req or rsp (in or out bufptr in keystore_ta.c) are NULL
-	 *    so res can't be serialized into rsp
-	 * 3. rsp_size (out_size) != OPTEE_KEYMASTER_RECV_BUF_SIZE
-	 *    (KM_RECV_BUF_SIZE) in keystore_ta.c
-	 * 4. error writing past the end of recv_buf, i.e. writing past out_end
-	 *    in keystore_ta.c
-	 */
-	ALOGE("Response of size %d contained error code %d\n", (int)rsp_size,
-	      (int)res);
-	return (keymaster_error_t)res;
+        /*
+         * rsp->error is KM_ERROR_OK but res isn't? This happens when:
+         * 1. param_types != exp_param_types in TA_InvokeCommandEntryPoint()
+         * 2. req or rsp (in or out bufptr in keystore_ta.c) are NULL
+         *    so res can't be serialized into rsp
+         * 3. rsp_size (out_size) != OPTEE_KEYMASTER_RECV_BUF_SIZE
+         *    (KM_RECV_BUF_SIZE) in keystore_ta.c
+         * 4. error writing past the end of recv_buf, i.e. writing past out_end
+         *    in keystore_ta.c
+         */
+        ALOGE("Response of size %d contained error code %d\n", (int)rsp_size, (int)res);
+        return (keymaster_error_t)res;
     }
 
     return rsp->error;
