@@ -47,14 +47,14 @@ int optee_keymaster_connect(void) {
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
         ALOGE("TEEC_InitializeContext failed with code 0x%x", res);
-        return (int)res;
+        return res;
     }
 
     /* Open a session to the TA */
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
         ALOGE("TEEC_Opensession failed with code 0x%x origin 0x%x", res, err_origin);
-        return (int)res;
+        return res;
     }
     connected = true;
     ALOGI("Connection with keystore was established");
@@ -68,7 +68,7 @@ void optee_keymaster_disconnect(void) {
 }
 
 const char* keymaster_error_message(uint32_t error) {
-    switch ((int)error) {
+    switch (error) {
         case (KM_ERROR_OK):
             return "No error";
         case (KM_ERROR_UNSUPPORTED_PURPOSE):
@@ -197,7 +197,7 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
         return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
     }
 
-    (void)memset(&op, 0, sizeof(op));
+    memset(&op, 0, sizeof(op));
 
     uint32_t req_size = req.SerializedSize();
     if (req_size > OPTEE_KEYMASTER_SEND_BUF_SIZE) {
@@ -213,8 +213,8 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
     uint8_t recv_buf[OPTEE_KEYMASTER_RECV_BUF_SIZE];
     keymaster::Eraser recv_buf_eraser(recv_buf, OPTEE_KEYMASTER_RECV_BUF_SIZE);
     uint32_t rsp_size = OPTEE_KEYMASTER_RECV_BUF_SIZE;
-    op.paramTypes = (uint32_t)TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_OUTPUT,
-                                               TEEC_NONE, TEEC_NONE);
+    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_OUTPUT,
+                                     TEEC_NONE, TEEC_NONE);
     op.params[0].tmpref.buffer = (void*)send_buf;
     op.params[0].tmpref.size = req_size;
     op.params[1].tmpref.buffer = (void*)recv_buf;
@@ -235,7 +235,7 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
 
     const uint8_t* p = recv_buf;
     if (!rsp->Deserialize(&p, p + rsp_size)) {
-        ALOGE("Error deserializing response of size %d\n", (int)rsp_size);
+        ALOGE("Error deserializing response of size %d\n", rsp_size);
         return KM_ERROR_UNKNOWN_ERROR;
     } else if (rsp->error != KM_ERROR_OK) {
         ALOGW("Response contained error code: %s\n", keymaster_error_message(rsp->error));
