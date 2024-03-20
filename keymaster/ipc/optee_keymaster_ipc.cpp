@@ -69,117 +69,117 @@ void optee_keymaster_disconnect(void) {
 
 const char* keymaster_error_message(uint32_t error) {
     switch (error) {
-        case (KM_ERROR_OK):
+        case KM_ERROR_OK:
             return "No error";
-        case (KM_ERROR_UNSUPPORTED_PURPOSE):
+        case KM_ERROR_UNSUPPORTED_PURPOSE:
             return "Purpose is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_PURPOSE):
+        case KM_ERROR_INCOMPATIBLE_PURPOSE:
             return "Purpose is incompatible";
-        case (KM_ERROR_UNSUPPORTED_ALGORITHM):
+        case KM_ERROR_UNSUPPORTED_ALGORITHM:
             return "Algorithm is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_ALGORITHM):
+        case KM_ERROR_INCOMPATIBLE_ALGORITHM:
             return "Algorithm is incompatible";
-        case (KM_ERROR_UNSUPPORTED_KEY_SIZE):
+        case KM_ERROR_UNSUPPORTED_KEY_SIZE:
             return "Unsupported key size";
-        case (KM_ERROR_UNSUPPORTED_BLOCK_MODE):
+        case KM_ERROR_UNSUPPORTED_BLOCK_MODE:
             return "Block mode is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_BLOCK_MODE):
+        case KM_ERROR_INCOMPATIBLE_BLOCK_MODE:
             return "Block mode is incompatible";
-        case (KM_ERROR_UNSUPPORTED_MAC_LENGTH):
+        case KM_ERROR_UNSUPPORTED_MAC_LENGTH:
             return "Mac length is unsupported";
-        case (KM_ERROR_UNSUPPORTED_PADDING_MODE):
+        case KM_ERROR_UNSUPPORTED_PADDING_MODE:
             return "Padding mode is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_PADDING_MODE):
+        case KM_ERROR_INCOMPATIBLE_PADDING_MODE:
             return "Padding mode is incompatible";
-        case (KM_ERROR_UNSUPPORTED_DIGEST):
+        case KM_ERROR_UNSUPPORTED_DIGEST:
             return "Digest is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_DIGEST):
+        case KM_ERROR_INCOMPATIBLE_DIGEST:
             return "Digest id incompatible";
-        case (KM_ERROR_INVALID_USER_ID):
+        case KM_ERROR_INVALID_USER_ID:
             return "User ID is invalid";
-        case (KM_ERROR_INVALID_AUTHORIZATION_TIMEOUT):
+        case KM_ERROR_INVALID_AUTHORIZATION_TIMEOUT:
             return "Invalid authorization timeout";
-        case (KM_ERROR_UNSUPPORTED_KEY_FORMAT):
+        case KM_ERROR_UNSUPPORTED_KEY_FORMAT:
             return "Key format is unsupported";
-        case (KM_ERROR_INCOMPATIBLE_KEY_FORMAT):
+        case KM_ERROR_INCOMPATIBLE_KEY_FORMAT:
             return "Key format is incompatible";
-        case (KM_ERROR_INVALID_INPUT_LENGTH):
+        case KM_ERROR_INVALID_INPUT_LENGTH:
             return "Invalid input length";
-        case (KM_ERROR_KEY_EXPORT_OPTIONS_INVALID):
+        case KM_ERROR_KEY_EXPORT_OPTIONS_INVALID:
             return "Key export options invalid";
-        case (KM_ERROR_KEY_USER_NOT_AUTHENTICATED):
+        case KM_ERROR_KEY_USER_NOT_AUTHENTICATED:
             return "User is not authenticated";
-        case (KM_ERROR_INVALID_OPERATION_HANDLE):
+        case KM_ERROR_INVALID_OPERATION_HANDLE:
             return "Operation handle is invalid";
-        case (KM_ERROR_INSUFFICIENT_BUFFER_SPACE):
+        case KM_ERROR_INSUFFICIENT_BUFFER_SPACE:
             return "Insufficient buffer space";
-        case (KM_ERROR_VERIFICATION_FAILED):
+        case KM_ERROR_VERIFICATION_FAILED:
             return "Verification failed";
-        case (KM_ERROR_TOO_MANY_OPERATIONS):
+        case KM_ERROR_TOO_MANY_OPERATIONS:
             return "Too many operations";
-        case (KM_ERROR_INVALID_KEY_BLOB):
+        case KM_ERROR_INVALID_KEY_BLOB:
             return "Key blob is invalid";
-        case (KM_ERROR_IMPORTED_KEY_NOT_ENCRYPTED):
+        case KM_ERROR_IMPORTED_KEY_NOT_ENCRYPTED:
             return "Imported key is not encrypted";
-        case (KM_ERROR_IMPORTED_KEY_DECRYPTION_FAILED):
+        case KM_ERROR_IMPORTED_KEY_DECRYPTION_FAILED:
             return "Imported key decryption failed";
-        case (KM_ERROR_IMPORTED_KEY_NOT_SIGNED):
+        case KM_ERROR_IMPORTED_KEY_NOT_SIGNED:
             return "Imported key is not signed";
-        case (KM_ERROR_IMPORTED_KEY_VERIFICATION_FAILED):
+        case KM_ERROR_IMPORTED_KEY_VERIFICATION_FAILED:
             return "Imported key verification failed";
-        case (KM_ERROR_INVALID_ARGUMENT):
+        case KM_ERROR_INVALID_ARGUMENT:
             return "Invalid argument";
-        case (KM_ERROR_UNSUPPORTED_TAG):
+        case KM_ERROR_UNSUPPORTED_TAG:
             return "Unsupported tag";
-        case (KM_ERROR_INVALID_TAG):
+        case KM_ERROR_INVALID_TAG:
             return "Invalid tag";
-        case (KM_ERROR_MEMORY_ALLOCATION_FAILED):
+        case KM_ERROR_MEMORY_ALLOCATION_FAILED:
             return "memory allocation failed";
-        case (KM_ERROR_IMPORT_PARAMETER_MISMATCH):
+        case KM_ERROR_IMPORT_PARAMETER_MISMATCH:
             return "Import parameters mismatch";
-        case (KM_ERROR_SECURE_HW_ACCESS_DENIED):
+        case KM_ERROR_SECURE_HW_ACCESS_DENIED:
             return "Secure hardware access denied";
-        case (KM_ERROR_OPERATION_CANCELLED):
+        case KM_ERROR_OPERATION_CANCELLED:
             return "Operation was cancelled";
-        case (KM_ERROR_CONCURRENT_ACCESS_CONFLICT):
+        case KM_ERROR_CONCURRENT_ACCESS_CONFLICT:
             return "Concurent access conflict";
-        case (KM_ERROR_SECURE_HW_BUSY):
+        case KM_ERROR_SECURE_HW_BUSY:
             return "Secure harware is busy";
-        case (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED):
+        case KM_ERROR_SECURE_HW_COMMUNICATION_FAILED:
             return "Secure hardware communication failed";
-        case (KM_ERROR_UNSUPPORTED_EC_FIELD):
+        case KM_ERROR_UNSUPPORTED_EC_FIELD:
             return "Unsupported EC field";
-        case (KM_ERROR_MISSING_NONCE):
+        case KM_ERROR_MISSING_NONCE:
             return "Missing nonce";
-        case (KM_ERROR_INVALID_NONCE):
+        case KM_ERROR_INVALID_NONCE:
             return "Nonce is invalid";
-        case (KM_ERROR_MISSING_MAC_LENGTH):
+        case KM_ERROR_MISSING_MAC_LENGTH:
             return "Mac length is missing";
-        case (KM_ERROR_KEY_RATE_LIMIT_EXCEEDED):
+        case KM_ERROR_KEY_RATE_LIMIT_EXCEEDED:
             return "Key rate limit has been exceeded";
-        case (KM_ERROR_CALLER_NONCE_PROHIBITED):
+        case KM_ERROR_CALLER_NONCE_PROHIBITED:
             return "Caller nonce is prohibited";
-        case (KM_ERROR_KEY_MAX_OPS_EXCEEDED):
+        case KM_ERROR_KEY_MAX_OPS_EXCEEDED:
             return "Key max operations has been exceeded";
-        case (KM_ERROR_INVALID_MAC_LENGTH):
+        case KM_ERROR_INVALID_MAC_LENGTH:
             return "Mac length is invalid";
-        case (KM_ERROR_MISSING_MIN_MAC_LENGTH):
+        case KM_ERROR_MISSING_MIN_MAC_LENGTH:
             return "Min mac length is missing";
-        case (KM_ERROR_UNSUPPORTED_MIN_MAC_LENGTH):
+        case KM_ERROR_UNSUPPORTED_MIN_MAC_LENGTH:
             return "Min mac length is unsupported";
-        case (KM_ERROR_UNSUPPORTED_EC_CURVE):
+        case KM_ERROR_UNSUPPORTED_EC_CURVE:
             return "Unsupported EC curve";
-        case (KM_ERROR_KEY_REQUIRES_UPGRADE):
+        case KM_ERROR_KEY_REQUIRES_UPGRADE:
             return "Key requeres upgrade";
-        case (KM_ERROR_ATTESTATION_CHALLENGE_MISSING):
+        case KM_ERROR_ATTESTATION_CHALLENGE_MISSING:
             return "Attestation challenge missing";
-        case (KM_ERROR_ATTESTATION_APPLICATION_ID_MISSING):
+        case KM_ERROR_ATTESTATION_APPLICATION_ID_MISSING:
             return "Attestation application ID missing";
-        case (KM_ERROR_KEYMASTER_NOT_CONFIGURED):
+        case KM_ERROR_KEYMASTER_NOT_CONFIGURED:
             return "Keymaster is not configured";
-        case (KM_ERROR_UNIMPLEMENTED):
+        case KM_ERROR_UNIMPLEMENTED:
             return "Feature is not implemented";
-        case (KM_ERROR_VERSION_MISMATCH):
+        case KM_ERROR_VERSION_MISMATCH:
             return "Version mismatch";
         default:
             return "Unknown error";
