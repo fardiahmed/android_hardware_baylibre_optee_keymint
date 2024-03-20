@@ -261,8 +261,8 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out += sizeof(keymaster_error_t);
 
-	/* current version 3.0 */
-	keymaster_version_t version = { 3, 0, 0 };
+	/* current version 4.1 */
+        keymaster_version_t version = { 4, 1, 0 };
 	TEE_MemMove(out, &version, sizeof(keymaster_version_t));
 
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
