@@ -236,6 +236,9 @@ keymaster_error_t optee_keymaster_send(uint32_t command, const keymaster::Serial
         return KM_ERROR_UNKNOWN_ERROR;
     }
 
+    /* response size updated after operation */
+    rsp_size = op.params[1].tmpref.size;
+
     const uint8_t* p = recv_buf;
     if (!rsp->Deserialize(&p, p + rsp_size)) {
         LOG(ERROR) << "Error deserializing response of size " << rsp_size;
