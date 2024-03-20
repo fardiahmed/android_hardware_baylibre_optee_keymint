@@ -67,7 +67,7 @@ void optee_keymaster_disconnect(void) {
     connected = false;
 }
 
-const char* keymaster_error_message(uint32_t error) {
+const char* keymaster_error_message(keymaster_error_t error) {
     switch (error) {
         case KM_ERROR_OK:
             return "No error";
