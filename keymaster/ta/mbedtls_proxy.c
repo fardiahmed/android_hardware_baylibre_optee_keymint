@@ -299,18 +299,18 @@ static keymaster_error_t mbedtls_export_rsa(TEE_Attribute **attrs, uint32_t *att
 					    uint32_t *key_size,
 					    mbedtls_pk_context *context)
 {
-	mbedtls_rsa_context *ctx = context->pk_ctx;
+	mbedtls_rsa_context *ctx = context->MBEDTLS_PRIVATE(pk_ctx);
 	uint32_t max_attrs = KM_ATTR_COUNT_RSA, count = 0;
 	keymaster_error_t ret = KM_ERROR_UNKNOWN_ERROR;
 	struct mpi_id mpis[KM_ATTR_COUNT_RSA] = {
-		{ TEE_ATTR_RSA_MODULUS, &ctx->N },
-		{ TEE_ATTR_RSA_PUBLIC_EXPONENT, &ctx->E },
-		{ TEE_ATTR_RSA_PRIVATE_EXPONENT, &ctx->D },
-		{ TEE_ATTR_RSA_PRIME1, &ctx->P },
-		{ TEE_ATTR_RSA_PRIME2, &ctx->Q },
-		{ TEE_ATTR_RSA_EXPONENT1, &ctx->DP },
-		{ TEE_ATTR_RSA_EXPONENT2, &ctx->DQ },
-		{ TEE_ATTR_RSA_COEFFICIENT, &ctx->QP },
+		{ TEE_ATTR_RSA_MODULUS, &ctx->MBEDTLS_PRIVATE(N) },
+		{ TEE_ATTR_RSA_PUBLIC_EXPONENT, &ctx->MBEDTLS_PRIVATE(E) },
+		{ TEE_ATTR_RSA_PRIVATE_EXPONENT, &ctx->MBEDTLS_PRIVATE(D) },
+		{ TEE_ATTR_RSA_PRIME1, &ctx->MBEDTLS_PRIVATE(P) },
+		{ TEE_ATTR_RSA_PRIME2, &ctx->MBEDTLS_PRIVATE(Q) },
+		{ TEE_ATTR_RSA_EXPONENT1, &ctx->MBEDTLS_PRIVATE(DP) },
+		{ TEE_ATTR_RSA_EXPONENT2, &ctx->MBEDTLS_PRIVATE(DQ) },
+		{ TEE_ATTR_RSA_COEFFICIENT, &ctx->MBEDTLS_PRIVATE(QP) },
 	};
 
 	TEE_Attribute *att = TEE_Malloc(sizeof(TEE_Attribute) * max_attrs,
@@ -346,14 +346,14 @@ static keymaster_error_t mbedtls_export_ecdsa(TEE_Attribute **attrs,
 					      uint32_t *attrs_count, uint32_t *key_size,
 					      mbedtls_pk_context *context)
 {
-	mbedtls_ecdsa_context *ctx = context->pk_ctx;
+	mbedtls_ecdsa_context *ctx = context->MBEDTLS_PRIVATE(pk_ctx);
 	uint32_t max_attrs = KM_ATTR_COUNT_EC, count = 0;
 	uint32_t curve = UNDEFINED;
 	keymaster_error_t ret = KM_ERROR_UNKNOWN_ERROR;
 	struct mpi_id mpis[KM_ATTR_COUNT_EC - 1] = {
-		{ TEE_ATTR_ECC_PRIVATE_VALUE, &ctx->d },
-		{ TEE_ATTR_ECC_PUBLIC_VALUE_X, &ctx->Q.X },
-		{ TEE_ATTR_ECC_PUBLIC_VALUE_Y, &ctx->Q.Y }
+		{ TEE_ATTR_ECC_PRIVATE_VALUE, &ctx->MBEDTLS_PRIVATE(d) },
+		{ TEE_ATTR_ECC_PUBLIC_VALUE_X, &ctx->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(X) },
+		{ TEE_ATTR_ECC_PUBLIC_VALUE_Y, &ctx->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Y) }
 	};
 
 	TEE_Attribute *att = TEE_Malloc(sizeof(TEE_Attribute) * max_attrs,
@@ -410,7 +410,7 @@ keymaster_error_t mbedTLS_decode_pkcs8(keymaster_blob_t key_data, TEE_Attribute 
 
 	mbedtls_pk_init(&pk);
 	int mbedtls_ret = mbedtls_pk_parse_key(&pk, key_data.data, key_data.data_length, 
-					       NULL, 0);
+					       NULL, 0, NULL, NULL);
 	if (mbedtls_ret != 0) {
 		EMSG("Failed to parse pkcs8 key");
 		return KM_ERROR_INVALID_KEY_BLOB;
@@ -427,15 +427,15 @@ keymaster_error_t mbedTLS_decode_pkcs8(keymaster_blob_t key_data, TEE_Attribute 
 
 	if (algorithm == KM_ALGORITHM_RSA && rsa_public_exponent &&
 	    *rsa_public_exponent == UNDEFINED) {
-		mbedtls_rsa_context *ctx = pk.pk_ctx;
-		size_t len = mbedtls_mpi_size(&ctx->E);
+		mbedtls_rsa_context *ctx = pk.MBEDTLS_PRIVATE(pk_ctx);
+		size_t len = mbedtls_mpi_size(&ctx->MBEDTLS_PRIVATE(E));
 
 		if (len > sizeof(rsa_exp)) {
 			EMSG("Wrond public exponent");
 			goto out;
 		}
 
-		mbedtls_mpi_write_binary(&ctx->E, (unsigned char *)&rsa_exp,
+		mbedtls_mpi_write_binary(&ctx->MBEDTLS_PRIVATE(E), (unsigned char *)&rsa_exp,
 					 sizeof(rsa_exp));
 
 		*rsa_public_exponent = TEE_U64_FROM_BIG_ENDIAN(rsa_exp);
@@ -497,7 +497,7 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 		goto out;
 	}
 
-	ecc = pk->pk_ctx;
+	ecc = pk->MBEDTLS_PRIVATE(pk_ctx);
 
 	mbedtls_ecdsa_init(ecc);
 
@@ -620,17 +620,19 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 	 * }
 	 *
 	 */
-	mbedtls_ret = mbedtls_ecp_group_load(&ecc->grp, grp_id);
+	mbedtls_ret = mbedtls_ecp_group_load(&ecc->MBEDTLS_PRIVATE(grp), grp_id);
 	if (mbedtls_ret) {
 		EMSG("mbedtls_ecp_group_load: failed: -%#x", -mbedtls_ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
 	}
 
-	if ((mbedtls_ret = mbedtls_mpi_copy(&ecc->Q.X, &attrs[1]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->Q.Y, &attrs[2]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->d, &attrs[0]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_lset(&ecc->Q.Z, 1) != 0)) {
+	if ((mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(X),
+					    &attrs[1]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Y),
+					    &attrs[2]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(d), &attrs[0]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_lset(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Z), 1) != 0)) {
 		EMSG("mbedtls_ecc import failed returned %d\n\n", mbedtls_ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
@@ -701,9 +703,9 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 		goto out;
 	}
 
-	rsa = pk->pk_ctx;
+	rsa = pk->MBEDTLS_PRIVATE(pk_ctx);
 
-	mbedtls_rsa_init(rsa, MBEDTLS_RSA_PKCS_V15, 0);
+	mbedtls_rsa_init(rsa);
 
 	/* check if we work with persistent object, as transient API differs */
 	if (obj_info.handleFlags & TEE_HANDLE_FLAG_PERSISTENT) {
@@ -794,26 +796,27 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 	}
 
 	/* N, P, Q, D, E */
-	if ((mbedtls_ret = mbedtls_mpi_copy(&rsa->N, &attrs[0]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->P, &attrs[3]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->Q, &attrs[4]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->D, &attrs[2]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->E, &attrs[1]) != 0)) {
+	if ((mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(N), &attrs[0]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(P), &attrs[3]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(Q), &attrs[4]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(D), &attrs[2]) != 0) ||
+	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(E), &attrs[1]) != 0)) {
 		EMSG("mbedtls_rsa import failed returned %d\n\n", mbedtls_ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
 	}
 
-	rsa->len = mbedtls_mpi_size(&rsa->N);
+	rsa->MBEDTLS_PRIVATE(len) = mbedtls_mpi_size(&rsa->MBEDTLS_PRIVATE(N));
 
 	//https://github.com/linaro-swg/kmgk/pull/3/commits/19f4163e47cbd96d5e98f9c315e88b3d51173ff9#r239748286
 	// TODO: blinding to mitigate against Bellcore attack
 	/* Deduce CRT */
-	mbedtls_mpi_sub_int(&K, &rsa->P, 1);
-	mbedtls_mpi_mod_mpi(&rsa->DP, &rsa->D, &K);
-	mbedtls_mpi_sub_int(&K, &rsa->Q, 1);
-	mbedtls_mpi_mod_mpi(&rsa->DQ, &rsa->D, &K);
-	mbedtls_mpi_inv_mod(&rsa->QP, &rsa->Q, &rsa->P);
+	mbedtls_mpi_sub_int(&K, &rsa->MBEDTLS_PRIVATE(P), 1);
+	mbedtls_mpi_mod_mpi(&rsa->MBEDTLS_PRIVATE(DP), &rsa->MBEDTLS_PRIVATE(D), &K);
+	mbedtls_mpi_sub_int(&K, &rsa->MBEDTLS_PRIVATE(Q), 1);
+	mbedtls_mpi_mod_mpi(&rsa->MBEDTLS_PRIVATE(DQ), &rsa->MBEDTLS_PRIVATE(D), &K);
+	mbedtls_mpi_inv_mod(&rsa->MBEDTLS_PRIVATE(QP), &rsa->MBEDTLS_PRIVATE(Q),
+			    &rsa->MBEDTLS_PRIVATE(P));
 
 out:
 	mbedtls_ctr_drbg_free(&ctr_drbg);
