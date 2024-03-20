@@ -29,6 +29,29 @@ static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 
 static tee_km_context_t optee_km_context;
 
+static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *in;
+	uint8_t *out;
+	size_t out_size;
+
+	in = (uint8_t *)params[0].memref.buffer;
+	out = (uint8_t *)params[1].memref.buffer;
+	out_size = params[1].memref.size;
+
+	if (!in || !out) {
+		EMSG("Unexpected null pointer");
+		return KM_ERROR_UNEXPECTED_NULL_POINTER;
+	}
+
+	if (out_size < KM_RECV_BUF_SIZE) {
+		EMSG("Insufficient output buffer space!");
+		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+	}
+
+	return KM_ERROR_OK;
+}
+
 static void TA_init_km_context(void)
 {
 	memset(&optee_km_context, 0, sizeof(tee_km_context_t));
@@ -159,16 +182,6 @@ static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 
 	DMSG("%s %d", __func__, __LINE__);
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	if (TA_is_out_of_bounds(in, in_end,
 				sizeof(optee_km_context.os_version) +
 				sizeof(optee_km_context.os_patchlevel))) {
@@ -217,14 +230,7 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-	if (!out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
+
 	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
@@ -267,16 +273,6 @@ static keymaster_error_t TA_addRngEntropy(TEE_Param params[TEE_NUM_PARAMS])
 	out_end = out + out_size;
 
 	DMSG("%s %d", __func__, __LINE__);
-
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
 
 	if (in_size == 0)
 		goto out;
@@ -360,16 +356,6 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_end = out + out_size;
 
 	DMSG("%s %d", __func__, __LINE__);
-
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
 
 	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &res);
 	if (res != KM_ERROR_OK)
@@ -514,16 +500,6 @@ static keymaster_error_t TA_getKeyCharacteristics(TEE_Param params[TEE_NUM_PARAM
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	in += TA_deserialize_key_blob_akms(in, in_end, &key_blob, &res);
 	if (res != KM_ERROR_OK)
 		goto exit;
@@ -624,16 +600,6 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
 
 	in += TA_deserialize_auth_set(in, in_end, &params_t, false, &res);
 	if (res != KM_ERROR_OK)
@@ -838,16 +804,6 @@ static keymaster_error_t TA_exportKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	/* additional param */
 	in += TA_deserialize_auth_set(in, in_end, &in_params, false, &res);
 	if (res != KM_ERROR_OK)
@@ -969,16 +925,6 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
 
 #ifndef CFG_ATTESTATION_PROVISIONING
 	/* This call creates keys/certs only once during first TA run */
@@ -1192,16 +1138,6 @@ static keymaster_error_t TA_upgradeKey(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	in += TA_deserialize_key_blob_akms(in, in_end, &key_to_upgrade, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
@@ -1249,14 +1185,7 @@ static keymaster_error_t TA_deleteKey(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-	if (!out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
+
 	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
@@ -1281,14 +1210,7 @@ static keymaster_error_t TA_deleteAllKeys(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-	if (!out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
+
 	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
@@ -1313,14 +1235,7 @@ static keymaster_error_t TA_destroyAttestationIds(TEE_Param params[TEE_NUM_PARAM
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-	if (!out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
+
 	out += TA_serialize_rsp_err(out, out_end, &res, &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
@@ -1377,16 +1292,6 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
-
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
 
 	/* Freed when operation is aborted (TA_abort_operation) */
 	operation = TEE_Malloc(sizeof(TEE_OperationHandle), TEE_MALLOC_FILL_ZERO);
@@ -1565,16 +1470,6 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
@@ -1723,16 +1618,6 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
@@ -1879,16 +1764,6 @@ static keymaster_error_t TA_abort(TEE_Param params[TEE_NUM_PARAMS])
 	out_size = (size_t)params[1].memref.size; /* limited to 8192 */
 	out_end = out + out_size;
 
-	if (!in || !out) {
-		EMSG("Unexpected null pointer");
-		return KM_ERROR_UNEXPECTED_NULL_POINTER;
-	}
-
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
-		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
-	}
-
 	in += TA_deserialize_op_handle(in, in_end, &operation_handle, &res);
 	if (res != KM_ERROR_OK)
 		goto out;
@@ -1912,10 +1787,16 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 						   TEE_PARAM_TYPE_MEMREF_OUTPUT,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
+	keymaster_error_t error;
+
 	if (param_types != exp_param_types) {
 		EMSG("Keystore TA wrong parameters");
 		return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
 	}
+
+	error = TA_checkParams(params);
+	if (error != KM_ERROR_OK)
+		return error;
 
 	switch (cmd_id) {
 	/* Keymaster commands */
