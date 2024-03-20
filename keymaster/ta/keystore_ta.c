@@ -44,8 +44,8 @@ static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS])
 		return KM_ERROR_UNEXPECTED_NULL_POINTER;
 	}
 
-	if (out_size < KM_RECV_BUF_SIZE) {
-		EMSG("Insufficient output buffer space!");
+	if (out_size != KM_RECV_BUF_SIZE) {
+		EMSG("Output buffer size incorrect: %ld != %d", out_size, KM_RECV_BUF_SIZE);
 		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
 
