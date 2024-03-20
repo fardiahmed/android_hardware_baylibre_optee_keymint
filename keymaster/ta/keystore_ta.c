@@ -210,10 +210,16 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 {
 	static hmac_sharing_parameters_t *hmac_saved_parameters = NULL;
 	uint8_t *out = NULL;
+	uint8_t *out_end = NULL;
+	size_t out_size = 0;
+	bool oob = false; /* out of bounds flag */
 
 	DMSG("%s %d", __func__, __LINE__);
 
 	out = (uint8_t *)params[1].memref.buffer;
+	out_size = (size_t)params[1].memref.size;
+	out_end = out + out_size;
+
 	out += sizeof(keymaster_error_t);
 
 	if (hmac_saved_parameters == NULL) {
@@ -227,7 +233,14 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 		TEE_GenerateRandom(hmac_saved_parameters->nonce, 32);
 	}
 
-	TEE_MemMove(out, hmac_saved_parameters, sizeof(hmac_sharing_parameters_t));
+	out += TA_serialize_blob_akms(out, out_end, &hmac_saved_parameters->seed, &oob);
+	if (oob) {
+		EMSG("Out of output buffer space");
+		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+	}
+
+	TEE_MemMove(out, hmac_saved_parameters->nonce, sizeof(hmac_saved_parameters->nonce));
+	out += sizeof(hmac_saved_parameters->nonce);
 
         params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
