@@ -1850,6 +1850,27 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_DESTROY_ATTESTATION_IDS:
 		DMSG("KM_DESTROY_ATTESTATION_IDS");
 		return TA_destroyAttestationIds(params);
+	case KM_GET_SUPPORTED_ALGORITHMS:
+	case KM_GET_SUPPORTED_BLOCK_MODES:
+	case KM_GET_SUPPORTED_PADDING_MODES:
+	case KM_GET_SUPPORTED_DIGESTS:
+	case KM_GET_SUPPORTED_IMPORT_FORMATS:
+	case KM_GET_SUPPORTED_EXPORT_FORMATS:
+	case KM_GET_HMAC_SHARING_PARAMETERS:
+	case KM_COMPUTE_SHARED_HMAC:
+	case KM_VERIFY_AUTHORIZATION:
+	case KM_IMPORT_WRAPPED_KEY:
+	case KM_GET_VERSION_2:
+	case KM_EARLY_BOOT_ENDED:
+	case KM_DEVICE_LOCKED:
+	case KM_GENERATE_RKP_KEY:
+	case KM_GENERATE_CSR:
+	case KM_CONFIGURE_VENDOR_PATCHLEVEL:
+	case KM_GET_ROOT_OF_TRUST:
+	case KM_GET_HW_INFO:
+	case KM_GENERATE_CSR_V2:
+		return KM_ERROR_UNIMPLEMENTED;
+
 #ifdef CFG_ATTESTATION_PROVISIONING
 	/* Provisioning commands */
 	case KM_SET_ATTESTATION_KEY:
@@ -1858,6 +1879,19 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_APPEND_ATTESTATION_CERT_CHAIN:
 		DMSG("KM_APPEND_ATTESTATION_CERT_CHAIN");
 		return TA_AppendAttestationCertKey(params);
+	case KM_SET_BOOT_PARAMS:
+	case KM_ATAP_GET_CA_REQUEST:
+	case KM_ATAP_SET_CA_RESPONSE_BEGIN:
+	case KM_ATAP_SET_CA_RESPONSE_UPDATE:
+	case KM_ATAP_SET_CA_RESPONSE_FINISH:
+	case KM_ATAP_READ_UUID:
+	case KM_SET_PRODUCT_ID:
+	case KM_CLEAR_ATTESTATION_CERT_CHAIN:
+	case KM_SET_WRAPPED_ATTESTATION_KEY:
+	case KM_SET_ATTESTATION_IDS:
+	case KM_SET_ATTESTATION_IDS_KM3:
+	case KM_CONFIGURE_BOOT_PATCHLEVEL:
+		return KM_ERROR_UNIMPLEMENTED;
 #endif
 	/* Gatekeeper commands */
 	case KM_GET_AUTHTOKEN_KEY:
@@ -1866,6 +1900,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 
 	default:
 		DMSG("Unknown command %d", cmd_id);
-		return KM_ERROR_UNIMPLEMENTED;
+		return KM_ERROR_INVALID_ARGUMENT;
 	}
 }
