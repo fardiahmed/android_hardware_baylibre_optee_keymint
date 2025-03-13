@@ -34,6 +34,8 @@
 typedef enum {
 	GK_ENROLL,
 	GK_VERIFY,
+	GK_DELETE_USER,
+	GK_DELETE_ALL_USERS,
 } gatekeeper_command_t;
 
 /*
@@ -45,11 +47,6 @@ typedef enum {
 	ERROR_RETRY,
 	ERROR_UNKNOWN,
 } gatekeeper_error_t;
-
-/*
- * GateKeeper message size
- */
-#define RECV_BUF_SIZE 8192
 
 /*
  * General message functions
