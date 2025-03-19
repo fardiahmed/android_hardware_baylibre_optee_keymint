@@ -29,7 +29,7 @@ static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 
 static tee_km_context_t optee_km_context;
 
-static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS])
+static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS], uint32_t cmd_id)
 {
 	uint8_t *in;
 	uint8_t *out;
@@ -45,7 +45,10 @@ static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS])
 		return KM_ERROR_UNEXPECTED_NULL_POINTER;
 	}
 
-	if (out_size != KM_RECV_BUF_SIZE) {
+	if (cmd_id == KM_GET_AUTHTOKEN_KEY && out_size != HMAC_SHA256_KEY_SIZE_BYTE) {
+		EMSG("Output buffer size incorrect: %ld != %d", out_size, HMAC_SHA256_KEY_SIZE_BYTE);
+		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+	} else if (cmd_id != KM_GET_AUTHTOKEN_KEY && out_size != KM_RECV_BUF_SIZE) {
 		EMSG("Output buffer size incorrect: %ld != %d", out_size, KM_RECV_BUF_SIZE);
 		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
@@ -1856,7 +1859,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	error = TA_checkParams(params);
+	error = TA_checkParams(params, cmd_id);
 	if (error != KM_ERROR_OK)
 		return TA_errorRsp(params, error);
 
