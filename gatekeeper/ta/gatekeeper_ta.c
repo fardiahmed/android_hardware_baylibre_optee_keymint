@@ -239,7 +239,6 @@ static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
 {
 	TEE_Result		res;
 
-	uint8_t			dummy[HMAC_SHA256_KEY_SIZE_BYTE];
 	uint8_t			authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE];
 	uint32_t		paramTypes;
 	TEE_Param		params[TEE_NUM_PARAMS];
@@ -270,8 +269,8 @@ static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
 				     TEE_PARAM_TYPE_NONE);
 	memset(&params, 0, sizeof(params));
 
-	params[0].memref.buffer = dummy;
-	params[0].memref.size = sizeof(dummy);
+	params[0].memref.buffer = NULL;
+	params[0].memref.size = 0;
 
 	params[1].memref.buffer = authTokenKeyData;
 	params[1].memref.size = sizeof(authTokenKeyData);

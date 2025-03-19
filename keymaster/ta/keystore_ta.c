@@ -39,7 +39,8 @@ static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out_size = params[1].memref.size;
 
-	if (!in || !out) {
+	// the caller already checked we are supposed to get a buffer and size, not a value.
+	if ((!in && params[0].memref.size > 0) || (!out && params[1].memref.size > 0)) {
 		EMSG("Unexpected null pointer");
 		return KM_ERROR_UNEXPECTED_NULL_POINTER;
 	}
