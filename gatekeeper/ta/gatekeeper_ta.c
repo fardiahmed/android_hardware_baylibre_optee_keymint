@@ -242,21 +242,15 @@ static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
 	uint8_t			authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE];
 	uint32_t		paramTypes;
 	TEE_Param		params[TEE_NUM_PARAMS];
-	TEE_TASessionHandle	sess;
-	uint32_t 		returnOrigin;
+	TEE_TASessionHandle	sess = TEE_HANDLE_NULL;
+	uint32_t 		returnOrigin = 0;
 	const TEE_UUID		uuid = TA_KEYMASTER_UUID;
-	TEE_Attribute		attrs[1];
+	TEE_Attribute		attrs[1] = { 0 };
 
 
 	DMSG("Connect to keymaster");
 
-	paramTypes = TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE,
-				     TEE_PARAM_TYPE_NONE,
-				     TEE_PARAM_TYPE_NONE,
-				     TEE_PARAM_TYPE_NONE);
-	memset(params, 0, sizeof(params));
-
-	res = TEE_OpenTASession(&uuid, TEE_TIMEOUT_INFINITE, paramTypes, params, &sess,
+	res = TEE_OpenTASession(&uuid, TEE_TIMEOUT_INFINITE, 0, NULL, &sess,
 			&returnOrigin);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to connect to keymaster");
