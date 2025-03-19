@@ -26,6 +26,8 @@
 extern "C" {
 #endif // __cplusplus
 
+#define AUTH_KEY_OFFSET 4
+
 #define STR_TRACE_USER_TA "KEYSTORE"
 
 /**

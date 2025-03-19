@@ -168,7 +168,7 @@ keymaster_error_t TA_GetAuthTokenKey(TEE_Param params[TEE_NUM_PARAMS])
 		goto exit;
 	}
 
-	TEE_MemMove(params[1].memref.buffer, auth_token_key, sizeof(auth_token_key));
+	TEE_MemMove(params[1].memref.buffer + AUTH_KEY_OFFSET, auth_token_key, sizeof(auth_token_key));
 
 exit:
 	return res;

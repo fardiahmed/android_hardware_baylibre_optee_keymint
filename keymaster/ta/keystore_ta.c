@@ -45,8 +45,8 @@ static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS], uint32
 		return KM_ERROR_UNEXPECTED_NULL_POINTER;
 	}
 
-	if (cmd_id == KM_GET_AUTHTOKEN_KEY && out_size != HMAC_SHA256_KEY_SIZE_BYTE) {
-		EMSG("Output buffer size incorrect: %ld != %d", out_size, HMAC_SHA256_KEY_SIZE_BYTE);
+	if (cmd_id == KM_GET_AUTHTOKEN_KEY && out_size != HMAC_SHA256_KEY_SIZE_BYTE + AUTH_KEY_OFFSET) {
+		EMSG("Output buffer size incorrect: %ld != %d", out_size, HMAC_SHA256_KEY_SIZE_BYTE + AUTH_KEY_OFFSET);
 		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	} else if (cmd_id != KM_GET_AUTHTOKEN_KEY && out_size != KM_RECV_BUF_SIZE) {
 		EMSG("Output buffer size incorrect: %ld != %d", out_size, KM_RECV_BUF_SIZE);

@@ -23,6 +23,8 @@
 #include "gatekeeper_ipc.h"
 #include "failure_record.h"
 
+#define AUTH_KEY_OFFSET 4
+
 static uint8_t	secret_ID[] = {0xB1, 0x6B, 0x00, 0xB5};
 
 TEE_Result TA_CreateEntryPoint(void)
@@ -239,7 +241,7 @@ static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
 {
 	TEE_Result		res;
 
-	uint8_t			authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE];
+	uint8_t			authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE + AUTH_KEY_OFFSET];
 	uint32_t		paramTypes;
 	TEE_Param		params[TEE_NUM_PARAMS];
 	TEE_TASessionHandle	sess = TEE_HANDLE_NULL;
@@ -282,8 +284,8 @@ static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
 		goto close_sess;
 	}
 
-	TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, authTokenKeyData,
-			sizeof(authTokenKeyData));
+	TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, (authTokenKeyData + AUTH_KEY_OFFSET),
+			(sizeof(authTokenKeyData) - AUTH_KEY_OFFSET));
 	res = TEE_PopulateTransientObject(key, attrs,
 			sizeof(attrs)/sizeof(attrs[0]));
 	if (res != TEE_SUCCESS) {
