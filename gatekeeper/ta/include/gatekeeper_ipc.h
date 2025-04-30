@@ -49,128 +49,16 @@ typedef enum {
 } gatekeeper_error_t;
 
 /*
- * General message functions
+ * GateKeeper message size
  */
 
-/*
- * Size function. Function returns number of bytes that was used @buffer
- * through @iter
- *
- * @buffer points to the start of the data
- * @iter points to the end of read data
- * @return number of bytes
- */
-static inline uint32_t get_size(const uint8_t *buffer, const uint8_t *iter)
-{
-	return iter - buffer;
-}
+constexpr const uint32_t SEND_BUF_SIZE = 8192;
+constexpr const uint32_t RECV_BUF_SIZE = 8192;
+#define GATEKEEPER_MAX_BUFFER_LENGTH (RECV_BUF_SIZE-sizeof(uint32_t))
+		
+struct gatekeeper_message {
+    uint32_t cmd;
+    uint8_t payload[0];
+};
 
-/*
- * Serialization functions
- */
-
-/*
- * Blob serialization function. Function writes to @buffer first
- * blob @length (4 bytes) and than writes blob @data (@length bytes).
- * After function @buffer will point to next memory after written data.
- *
- * @buffer that will contain serialized data
- * @data blob pointer
- * @length blob size
- */
-static inline void serialize_blob(uint8_t **buffer,
-		const uint8_t *data, uint32_t length)
-{
-	memcpy(*buffer, &length, sizeof(length));
-	*buffer += sizeof(length);
-	if (length) {
-		memcpy(*buffer, data, length);
-		*buffer += length;
-	}
-}
-
-/*
- * Integer serialization function. Function writes to @buffer integer @data
- * (4 bytes). After function @buffer will point to next memory after
- * written data.
- *
- * @buffer that will contain serialized data
- * @data integer value
- */
-static inline void serialize_int(uint8_t **buffer, uint32_t data)
-{
-	memcpy(*buffer, &data, sizeof(data));
-	*buffer += sizeof(data);
-}
-
-/*
- * 64 bit integer serialization function. Function writes to @buffer integer
- * @data (8 bytes). After function @buffer will point to next memory after
- * written data.
- *
- * @buffer that will contain serialized data
- * @data 64 bit integer value
- */
-static inline void serialize_int64(uint8_t **buffer, uint64_t data)
-{
-	memcpy(*buffer, &data, sizeof(data));
-	*buffer += sizeof(data);
-}
-
-/*
- * Deserialization functions
- */
-
-/*
- * Blob deserialization function. Function reads from @buffer first
- * blob length (4 bytes) and than reads blob data (length bytes).
- * After function @buffer will point to next memory after read data,
- * @data will point to deserialized blob and @length will contain @data length
- *
- * @buffer that contains serialized data
- * @data pointer that will point to deserialized blob
- * @length variable will contain blob length
- */
-static inline void deserialize_blob(const uint8_t **buffer,
-		const uint8_t **data, uint32_t *length)
-{
-	memcpy(length, *buffer, sizeof(*length));
-	*buffer += sizeof(*length);
-	if (*length) {
-		*data = *buffer;
-		*buffer += *length;
-	} else {
-		*data = NULL;
-	}
-}
-
-/*
- * Integer deserialization function. Function reads from @buffer integer data
- * (4 bytes). This value will contain @data variable.
- * After function @buffer will point to next memory after read data,
- * @data will contain deserialized integer.
- *
- * @buffer that contains serialized data
- * @data variable that will contain deseriazed integer
- */
-static inline void deserialize_int(const uint8_t **buffer, uint32_t *data)
-{
-	memcpy(data, *buffer, sizeof(*data));
-	*buffer += sizeof(*data);
-}
-
-/*
- * 64 bit integer deserialization function. Function reads from @buffer integer
- * data (8 bytes). This value will contain @data variable.
- * After function @buffer will point to next memory after read data,
- * @data will contain deserialized 64 bit integer.
- *
- * @buffer that contains serialized data
- * @data variable that will contain deseriazed 64 bit integer
- */
-static inline void deserialize_int64(const uint8_t **buffer, uint64_t *data)
-{
-	memcpy(data, *buffer, sizeof(*data));
-	*buffer += sizeof(*data);
-}
 #endif /* GATEKEEPER_IPC_H */

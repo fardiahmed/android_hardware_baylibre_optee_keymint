@@ -23,7 +23,7 @@
 
 using aidl::android::hardware::gatekeeper::OpteeGateKeeperDevice;
 
-int main() {
+int main(int, char** argv) {
     ABinderProcess_setThreadPoolMaxThreadCount(0);
 
     std::shared_ptr<OpteeGateKeeperDevice> gatekeeper =
@@ -33,7 +33,7 @@ int main() {
     binder_status_t status =
             AServiceManager_addService(gatekeeper->asBinder().get(), instance.c_str());
     CHECK_EQ(status, STATUS_OK);
-
+    LOG(DEBUG) << "Adding service instance: " << instance;
     ABinderProcess_joinThreadPool();
 
     return -1;  // Should never get here.

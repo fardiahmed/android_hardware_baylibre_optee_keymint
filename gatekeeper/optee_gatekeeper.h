@@ -17,13 +17,11 @@
 #ifndef OPTEE_GATEKEEPER_H
 #define OPTEE_GATEKEEPER_H
 
-#include <memory>
-
 #include <aidl/android/hardware/gatekeeper/BnGatekeeper.h>
-
 #include <gatekeeper/gatekeeper_messages.h>
 
-#include <gatekeeper_ipc.h>
+#include "optee_gatekeeper_ipc.h"
+#include "gatekeeper_ipc.h"
 
 namespace aidl::android::hardware::gatekeeper {
 
@@ -40,10 +38,13 @@ using ::gatekeeper::GateKeeperMessage;
 using ::gatekeeper::VerifyRequest;
 using ::gatekeeper::VerifyResponse;
 
-class OpteeGateKeeperDevice : public BnGatekeeper {
-  public:
-    explicit OpteeGateKeeperDevice();
+class OpteeGateKeeperDevice :  public BnGatekeeper
+{
+public:
+    OpteeGateKeeperDevice();
     ~OpteeGateKeeperDevice();
+    bool getConnected();
+
     /**
      * Enrolls password_payload, which should be derived from a user selected pin or password,
      * with the authentication factor private key used only for enrolling authentication
@@ -78,8 +79,13 @@ class OpteeGateKeeperDevice : public BnGatekeeper {
     ::ndk::ScopedAStatus deleteAllUsers() override;
 
     ::ndk::ScopedAStatus deleteUser(int32_t uid) override;
+private:
+    bool initialize();
+    bool connect();
+    void disconnect();
+    void finalize();
 
-  private:
+    // Main Send method for communication with TA
     gatekeeper_error_t Send(uint32_t command, const GateKeeperMessage& request,
                            GateKeeperMessage* response);
 
@@ -100,7 +106,9 @@ class OpteeGateKeeperDevice : public BnGatekeeper {
         return Send(GK_DELETE_ALL_USERS, request, response);
     }
 
-    int error_;
+
+    optee::OpteeIPC gatekeeperIPC_;
+    bool connected_;
 };
 
 }  // namespace aidl::android::hardware::gatekeeper

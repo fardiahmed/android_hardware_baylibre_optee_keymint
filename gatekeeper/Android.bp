@@ -31,7 +31,7 @@ cc_binary {
 
     srcs: [
         "service.cpp",
-        "optee_gatekeeper_ipc.c",
+        "optee_gatekeeper_ipc.cpp",
         "optee_gatekeeper.cpp",
     ],
 

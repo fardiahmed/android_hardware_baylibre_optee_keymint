@@ -15,11 +15,41 @@
  * limitations under the License.
  */
 
-__BEGIN_DECLS
+#ifndef OPTEE_IPC_H
+#define OPTEE_IPC_H
+#include <gatekeeper/gatekeeper_messages.h>
 
-int optee_gatekeeper_connect();
-int optee_gatekeeper_call(uint32_t cmd, void *in, uint32_t in_size, uint8_t *out,
-                          uint32_t *out_size);
-void optee_gatekeeper_disconnect();
+extern "C" {
+#include <tee_client_api.h>
+}
+/*
+ * GateKeeper command identifier
+ */
 
-__END_DECLS
+
+namespace aidl::android::hardware::gatekeeper::optee {
+
+
+class OpteeIPC {
+public:
+    OpteeIPC();
+    ~OpteeIPC();
+
+    bool initialize();
+    void finalize();
+
+    bool connect(const TEEC_UUID& uuid);
+    void disconnect();
+    bool call(uint32_t cmd,
+                  void *in,  uint32_t  in_size,
+                  uint8_t *out, uint32_t& out_size);
+
+private:
+    TEEC_Context ctx;
+    TEEC_Session sess;
+    bool inUse;
+};
+}  // namespace aidl::android::hardware::gatekeeper::optee
+
+
+#endif /* OPTEE_IPC_H */
