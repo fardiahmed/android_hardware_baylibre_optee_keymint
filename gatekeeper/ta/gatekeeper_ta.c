@@ -15,719 +15,475 @@
  * limitations under the License.
  */
 
-#include <tee_internal_api.h>
-#include <tee_internal_api_extensions.h>
-#include <utee_defines.h>
-
+#include <string.h>
 #include "ta_gatekeeper.h"
-#include "gatekeeper_ipc.h"
 #include "failure_record.h"
+#include "gatekeeper_ipc.h"
 
-#define AUTH_KEY_OFFSET 4
-
-static uint8_t	secret_ID[] = {0xB1, 0x6B, 0x00, 0xB5};
-
+/*
+ * TA entry point - called once when the TA is loaded
+ */
 TEE_Result TA_CreateEntryPoint(void)
 {
-	TEE_Result		res = TEE_SUCCESS;
-	TEE_ObjectHandle	secretObj = TEE_HANDLE_NULL;
-
-	DMSG("Checking master key secret");
-	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
-		sizeof(secret_ID), TEE_DATA_FLAG_ACCESS_READ, &secretObj);
-	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
-		uint8_t secretData[HMAC_SHA256_KEY_SIZE_BYTE];
-		DMSG("Create master key secret");
-
-		TEE_GenerateRandom(secretData, sizeof(secretData));
-		res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
-				sizeof(secret_ID), TEE_DATA_FLAG_ACCESS_WRITE,
-				TEE_HANDLE_NULL, NULL, 0, &secretObj);
-		if (res != TEE_SUCCESS) {
-			EMSG("Failed to create secret");
-		} else {
-			res = TEE_WriteObjectData(secretObj, (void *)secretData,
-					sizeof(secretData));
-			if (res != TEE_SUCCESS) {
-				EMSG("Failed to write secret data");
-			}
-			TEE_CloseObject(secretObj);
-		}
-	} else if (res == TEE_SUCCESS) {
-		DMSG("Secret is already created");
-		TEE_CloseObject(secretObj);
-	} else {
-		EMSG("Failed to open secret, error=%X", res);
-	}
-
-	return res;
+    return init_secure_keys(); // Initialize secure keys when TA starts
 }
 
-void TA_DestroyEntryPoint(void)
-{
+/*
+ * TA destroy entry point - called when the TA is unloaded
+ */
+void TA_DestroyEntryPoint(void) {
 }
 
+/*
+ * TA open session entry point
+ */
 TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
 		TEE_Param  params[TEE_NUM_PARAMS], void **sess_ctx)
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE,
-						   TEE_PARAM_TYPE_NONE);
-	if (param_types != exp_param_types)
-		return TEE_ERROR_BAD_PARAMETERS;
+    uint32_t exp_param_types = TEE_PARAM_TYPES(
+        TEE_PARAM_TYPE_NONE,
+        TEE_PARAM_TYPE_NONE,
+        TEE_PARAM_TYPE_NONE,
+        TEE_PARAM_TYPE_NONE);
 
-	InitFailureRecords();
+    if (param_types != exp_param_types)
+        return TEE_ERROR_BAD_PARAMETERS;
 
-	/* Unused parameters */
+    // No session context needed for this TA
+    *sess_ctx = NULL;
 	(void)&params;
-	(void)&sess_ctx;
 
 	return TEE_SUCCESS;
 }
 
+/*
+ * TA close session entry point
+ */
 void TA_CloseSessionEntryPoint(void *sess_ctx)
 {
 	/* Unused parameters */
-	(void)&sess_ctx;
+	(void)sess_ctx;
 }
 
-static TEE_Result TA_GetMasterKey(TEE_ObjectHandle masterKey)
-{
-	TEE_Result		res;
-	TEE_Attribute		attrs[1];
-	uint8_t			secretData[HMAC_SHA256_KEY_SIZE_BYTE];
-	TEE_ObjectHandle	secretObj = TEE_HANDLE_NULL;
-	uint32_t		readSize = 0;
+static void get_random(gatekeeper_device_t *dev, void *random,
+                               uint32_t requested_size) {
+  (void)dev; /* Unused */
 
-	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
-		sizeof(secret_ID), TEE_DATA_FLAG_ACCESS_READ, &secretObj);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to open secret, error=%X", res);
-		goto exit;
-	}
-
-	res = TEE_ReadObjectData(secretObj, secretData, sizeof(secretData),
-			&readSize);
-	if (res != TEE_SUCCESS || sizeof(secretData) != readSize) {
-		EMSG("Failed to read secret data, bytes = %u", readSize);
-		goto close_obj;
-	}
-
-	TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, secretData,
-			sizeof(secretData));
-
-	res = TEE_PopulateTransientObject(masterKey, attrs,
-			sizeof(attrs)/sizeof(attrs[0]));
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to set master key attributes");
-		goto close_obj;
-	}
-
-close_obj:
-	TEE_CloseObject(secretObj);
-exit:
-	return res;
+  TEE_GenerateRandom(random, requested_size);
 }
 
-static TEE_Result TA_ComputeSignature(uint8_t *signature, size_t signature_length,
-		TEE_ObjectHandle key, const uint8_t *message, size_t length)
-{
-	uint32_t buf_length = HMAC_SHA256_KEY_SIZE_BYTE;
-	uint8_t buf[buf_length];
-	TEE_OperationHandle op = TEE_HANDLE_NULL;
-	TEE_Result res;
-	uint32_t to_write;
+/*
+ * Retrieve auth token key from Keymaster TA
+ */
+static bool get_auth_token_key(gatekeeper_device_t *dev,
+                               const uint8_t **auth_token_key,
+                               uint32_t *length) {
+  (void)dev; /* Unused */
+  TEE_Result res = TEE_ERROR_GENERIC;
+  TEE_ObjectHandle key = TEE_HANDLE_NULL;
+  uint8_t authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE + AUTH_KEY_OFFSET];
+  uint32_t paramTypes;
+  TEE_Param params[TEE_NUM_PARAMS];
+  TEE_TASessionHandle sess = TEE_HANDLE_NULL;
+  uint32_t returnOrigin = 0;
+  const TEE_UUID uuid = TA_KEYMASTER_UUID;
+  TEE_Attribute attrs[1] = {0};
+  uint8_t dummy[HMAC_SHA256_KEY_SIZE_BYTE];
+  uint32_t readSize = 0;
 
-	res = TEE_AllocateOperation(&op, TEE_ALG_HMAC_SHA256, TEE_MODE_MAC,
-			HMAC_SHA256_KEY_SIZE_BIT);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to allocate HMAC operation");
-		goto exit;
-	}
+  /* Validate input parameters */
+  if (!auth_token_key || !length) {
+    return false;
+  }
 
-	res = TEE_SetOperationKey(op, key);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to set secret key");
-		goto free_op;
-	}
+  /* Initialize output parameters */
+  *auth_token_key = NULL;
+  *length = 0;
 
-	TEE_MACInit(op, NULL, 0);
+  /* Step 1: Allocate transient object for the key */
+  res = TEE_AllocateTransientObject(TEE_TYPE_HMAC_SHA256, 256, &key);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to allocate transient object, res=%x", res);
+    return false;
+  }
 
-	TEE_MACComputeFinal(op, (void *)message, length, buf, &buf_length);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to compute HMAC");
-		goto free_op;
-	}
+  /* Step 2: Open session with Keymaster TA */
+  res = TEE_OpenTASession(&uuid, TEE_TIMEOUT_INFINITE, 0, NULL, &sess,
+                          &returnOrigin);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to open session with keymaster, res=%x, origin=%u", res, returnOrigin);
+    TEE_FreeTransientObject(key);
+    goto exit;
+  }
 
-	to_write = buf_length;
-	if (buf_length > signature_length)
-		to_write = signature_length;
+  /* Step 3: Prepare parameters for command invocation */
+  paramTypes = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+                 TEE_PARAM_TYPE_MEMREF_OUTPUT,
+                 TEE_PARAM_TYPE_NONE,
+                 TEE_PARAM_TYPE_NONE);
+  memset(params, 0, sizeof(params));
+  memset(dummy, 0xAA, sizeof(dummy)); /* Initialize dummy with pattern */
+  memset(authTokenKeyData, 0, sizeof(authTokenKeyData));
 
-	memset(signature, 0, signature_length);
-	memcpy(signature, buf, to_write);
+  params[0].memref.buffer = dummy;
+  params[0].memref.size = sizeof(dummy);
 
-free_op:
-	TEE_FreeOperation(op);
-exit:
-	return res;
-}
+  params[1].memref.buffer = authTokenKeyData;
+  params[1].memref.size = sizeof(authTokenKeyData);
 
-static TEE_Result TA_ComputePasswordSignature(
-		uint8_t *signature, size_t signature_length,
-		TEE_ObjectHandle key,
-		const uint8_t *password, size_t password_length, salt_t salt)
-{
-	uint8_t salted_password[password_length + sizeof(salt)];
-	memcpy(salted_password, &salt, sizeof(salt));
-	memcpy(salted_password + sizeof(salt), password, password_length);
-	return TA_ComputeSignature(signature, signature_length, key,
-			salted_password, sizeof(salted_password));
-}
+  /* Step 4: Invoke command to get auth token key */
+  res = TEE_InvokeTACommand(sess, TEE_TIMEOUT_INFINITE, KM_GET_AUTHTOKEN_KEY,
+          paramTypes, params, &returnOrigin);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to invoke command, res=%x, origin=%u", res, returnOrigin);
+    goto close_sess;
+  }
 
-static TEE_Result TA_CreatePasswordHandle(password_handle_t *password_handle,
-		salt_t salt, secure_id_t user_id, uint64_t flags,
-		uint64_t handle_version, const uint8_t *password,
-		uint32_t password_length)
-{
-	password_handle_t pw_handle;
-	const uint32_t metadata_length = sizeof(pw_handle.user_id) +
-		sizeof(pw_handle.flags) +
-		sizeof(pw_handle.version);
-	uint8_t to_sign[password_length + metadata_length];
+  /* Step 5: Validate returned data size */
+  if (params[1].memref.size != sizeof(authTokenKeyData)) {
+    EMSG("Invalid returned data size: %u, expected: %zu", params[1].memref.size, sizeof(authTokenKeyData));
+    res = TEE_ERROR_BAD_STATE;
+    goto close_sess;
+  }
 
-	TEE_ObjectHandle masterKey = TEE_HANDLE_NULL;
-	TEE_Result res;
+  /* Step 6: Initialize attribute with the key data */
+  TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE,
+                      (authTokenKeyData + AUTH_KEY_OFFSET),
+                      (sizeof(authTokenKeyData) - AUTH_KEY_OFFSET));
 
-	res = TEE_AllocateTransientObject(TEE_TYPE_HMAC_SHA256,
-			HMAC_SHA256_KEY_SIZE_BIT, &masterKey);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to allocate password key");
-		goto exit;
-	}
+  /* Step 7: Populate the transient object with the attribute */
+  res = TEE_PopulateTransientObject(key, attrs, 1);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to populate transient object, res=%x", res);
+    goto close_sess;
+  }
 
-	pw_handle.version = handle_version;
-	pw_handle.salt = salt;
-	pw_handle.user_id = user_id;
-	pw_handle.flags = flags;
-	pw_handle.hardware_backed = true;
+  /* Step 8: Skip reading object data (which fails) and use data from authTokenKeyData directly */
 
-	memcpy(to_sign, &pw_handle, metadata_length);
-	memcpy(to_sign + metadata_length, password, password_length);
+  /* Create temporary buffer for key data */
+  static uint8_t keyBuffer[256]; /* Static to ensure it's not freed */
+  memset(keyBuffer, 0, sizeof(keyBuffer));
 
-	res = TA_GetMasterKey(masterKey);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to get master key");
-		goto free_key;
-	}
+  /* Instead of trying to read from the object, use the data we already have */
+  size_t keyDataSize = sizeof(authTokenKeyData) - AUTH_KEY_OFFSET;
+  memcpy(keyBuffer, authTokenKeyData + AUTH_KEY_OFFSET, keyDataSize);
+  readSize = keyDataSize;
 
-	res = TA_ComputePasswordSignature(pw_handle.signature,
-			sizeof(pw_handle.signature), masterKey,
-			to_sign, sizeof(to_sign), salt);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to compute password signature");
-		goto free_key;
-	}
+  /* Set output parameters */
+  *auth_token_key = keyBuffer;
+  *length = readSize;
 
-	memcpy(password_handle, &pw_handle, sizeof(pw_handle));
-
-free_key:
-	TEE_FreeTransientObject(masterKey);
-exit:
-	return res;
-}
-
-static TEE_Result TA_GetAuthTokenKey(TEE_ObjectHandle key)
-{
-	TEE_Result		res;
-
-	uint8_t			authTokenKeyData[HMAC_SHA256_KEY_SIZE_BYTE + AUTH_KEY_OFFSET];
-	uint32_t		paramTypes;
-	TEE_Param		params[TEE_NUM_PARAMS];
-	TEE_TASessionHandle	sess = TEE_HANDLE_NULL;
-	uint32_t 		returnOrigin = 0;
-	const TEE_UUID		uuid = TA_KEYMASTER_UUID;
-	TEE_Attribute		attrs[1] = { 0 };
-
-
-	DMSG("Connect to keymaster");
-
-	res = TEE_OpenTASession(&uuid, TEE_TIMEOUT_INFINITE, 0, NULL, &sess,
-			&returnOrigin);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to connect to keymaster");
-		goto exit;
-	}
-
-	paramTypes = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
-				     TEE_PARAM_TYPE_MEMREF_OUTPUT,
-				     TEE_PARAM_TYPE_NONE,
-				     TEE_PARAM_TYPE_NONE);
-	memset(&params, 0, sizeof(params));
-
-	params[0].memref.buffer = NULL;
-	params[0].memref.size = 0;
-
-	params[1].memref.buffer = authTokenKeyData;
-	params[1].memref.size = sizeof(authTokenKeyData);
-
-	res = TEE_InvokeTACommand(sess, TEE_TIMEOUT_INFINITE, KM_GET_AUTHTOKEN_KEY,
-			paramTypes, params, &returnOrigin);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed in keymaster");
-		goto close_sess;
-	}
-
-	if (params[1].memref.size != sizeof(authTokenKeyData)) {
-		EMSG("Wrong auth_token key size");
-		res = TEE_ERROR_CORRUPT_OBJECT;
-		goto close_sess;
-	}
-
-	TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, (authTokenKeyData + AUTH_KEY_OFFSET),
-			(sizeof(authTokenKeyData) - AUTH_KEY_OFFSET));
-	res = TEE_PopulateTransientObject(key, attrs,
-			sizeof(attrs)/sizeof(attrs[0]));
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to set auth_token key attributes");
-		goto close_sess;
-	}
+  /* Success! */
+  TEE_CloseTASession(sess);
+  TEE_CloseObject(key);
+  return true;
 
 close_sess:
-	TEE_CloseTASession(sess);
+  TEE_CloseTASession(sess);
+  TEE_CloseObject(key);
 exit:
-	return res;
+  return false;
 }
 
-static void TA_MintAuthToken(hw_auth_token_t *auth_token, int64_t timestamp,
-		secure_id_t user_id, secure_id_t authenticator_id,
-		uint64_t challenge) {
-	TEE_Result		res;
+/*
+ * Compute secure signature for a password handle
+ * 
+ * Modified to match keymaster's TA_ComputeSignature function logic exactly
+ * to ensure both TAs generate the same HMAC for the same input.
+ */
+static void compute_signature(gatekeeper_device_t *dev,
+                              uint8_t *signature, uint32_t signature_length,
+                              const uint8_t *key, uint32_t key_length,
+                              const uint8_t *message, const uint32_t length) {
+  (void)dev; /* Unused */
+  TEE_OperationHandle op = NULL;
+  TEE_Result res = TEE_ERROR_GENERIC;
+  TEE_ObjectHandle master_key = TEE_HANDLE_NULL;
+  TEE_Attribute attrs[1];
+  uint32_t buf_length = HMAC_SHA256_KEY_SIZE_BYTE;
+  uint8_t buf[buf_length];
+  uint32_t to_write;
 
-	hw_auth_token_t		token;
-	TEE_ObjectHandle	authTokenKey = TEE_HANDLE_NULL;
+  // Validate input parameters
+  if (!signature || signature_length == 0 || !key || key_length == 0) {
+    EMSG("Invalid parameters for compute_signature");
+    return;
+  }
 
-	const uint8_t		*toSign = (const uint8_t *)&token;
-	const uint32_t		toSignLen = sizeof(token) - sizeof(token.hmac);
+  // Initialize HMAC operation - use same bit size as keymaster (256)
+  res = TEE_AllocateOperation(&op, TEE_ALG_HMAC_SHA256, TEE_MODE_MAC, 256);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to allocate HMAC operation, res=%x", res);
+    return;
+  }
 
-	token.version = HW_AUTH_TOKEN_VERSION;
-	token.challenge = challenge;
-	token.user_id = user_id;
-	token.authenticator_id = authenticator_id;
-	token.authenticator_type = TEE_U32_TO_BIG_ENDIAN(
-			(uint32_t)HW_AUTH_PASSWORD);
-	token.timestamp =  TEE_U64_TO_BIG_ENDIAN(timestamp);
-	memset(token.hmac, 0, sizeof(token.hmac));
+  // First allocate the transient object for the key
+  res = TEE_AllocateTransientObject(TEE_TYPE_HMAC_SHA256, key_length * 8, &master_key);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to allocate transient object, res=%x", res);
+    TEE_FreeOperation(op);
+    return;
+  }
 
-	res = TEE_AllocateTransientObject(TEE_TYPE_HMAC_SHA256,
-			HMAC_SHA256_KEY_SIZE_BIT, &authTokenKey);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to allocate auth_token key");
-		goto exit;
-	}
+  // Initialize the attribute with the correct key data and length
+  TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, key, key_length);
 
-	res = TA_GetAuthTokenKey(authTokenKey);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to get auth_token key from keymaster");
-		goto free_key;
-	}
+  // Populate the transient object with the attributes
+  res = TEE_PopulateTransientObject(master_key, attrs, 1);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to populate transient object, res=%x", res);
+    TEE_FreeTransientObject(master_key);
+    TEE_FreeOperation(op);
+    return;
+  }
 
-	res = TA_ComputeSignature(token.hmac, sizeof(token.hmac), authTokenKey,
-			toSign, toSignLen);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to compute auth_token signature");
-		memset(token.hmac, 0, sizeof(token.hmac));
-		goto free_key;
-	}
+  // Set the key for the operation
+  res = TEE_SetOperationKey(op, master_key);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to set operation key, res=%x", res);
+    TEE_FreeTransientObject(master_key);
+    TEE_FreeOperation(op);
+    return;
+  }
 
-free_key:
-	TEE_FreeTransientObject(authTokenKey);
-exit:
-	memcpy(auth_token, &token, sizeof(token));
+  // Initialize MAC operation
+  TEE_MACInit(op, NULL, 0);
+
+  // Using same method as keymaster's TA_ComputeSignature: compute HMAC in one step
+  res = TEE_MACComputeFinal(op, (void *)message, length, buf, &buf_length);
+  if (res != TEE_SUCCESS) {
+    EMSG("Failed to compute HMAC, res=%x", res);
+    TEE_FreeTransientObject(master_key);
+    TEE_FreeOperation(op);
+    return;
+  }
+  
+  // Copy result to output, same as keymaster
+  to_write = buf_length;
+  if (buf_length > signature_length)
+    to_write = signature_length;
+
+  memset(signature, 0, signature_length);
+  memcpy(signature, buf, to_write);
+
+  // Clean up resources
+  TEE_FreeOperation(op);
+  TEE_FreeTransientObject(master_key);
+
+  return;
 }
 
-static TEE_Result TA_DoVerify(const password_handle_t *expected_handle,
-		const uint8_t *password, uint32_t password_length)
+static void
+compute_password_signature(gatekeeper_device_t *dev, uint8_t *signature,
+                           uint32_t signature_length, const uint8_t *key,
+                           uint32_t key_length, const uint8_t *password,
+                           uint32_t password_length, gatekeeper_salt_t salt)
 {
-	TEE_Result res;
-	password_handle_t password_handle;
-
-	if (!password_length) {
-		res = TEE_FALSE;
-		goto exit;
-	}
-
-	res = TA_CreatePasswordHandle(&password_handle, expected_handle->salt,
-			expected_handle->user_id, expected_handle->flags,
-			expected_handle->version, password, password_length);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to create password handle");
-		goto exit;
-	}
-
-	if (memcmp(password_handle.signature, expected_handle->signature,
-			sizeof(expected_handle->signature)) == 0) {
-		res = TEE_TRUE;
-	} else {
-		res = TEE_FALSE;
-	}
-
-exit:
-	return res;
+  uint8_t salted_password[password_length + sizeof(salt)];
+  memcpy(salted_password, &salt, sizeof(salt));
+  memcpy(salted_password + sizeof(salt), password, password_length);
+  compute_signature(dev, signature, signature_length, key,
+                           key_length, salted_password,
+                           password_length + sizeof(salt));
 }
-
-static TEE_Result TA_Enroll(TEE_Param params[TEE_NUM_PARAMS])
-{
-	TEE_Result res = TEE_SUCCESS;
-
-	/*
-	 * Enroll request layout
-	 * +--------------------------------+---------------------------------+
-	 * | Name                           | Number of bytes                 |
-	 * +--------------------------------+---------------------------------+
-	 * | uid                            | 4                               |
-	 * | desired_password_length        | 4                               |
-	 * | desired_password               | #desired_password_length        |
-	 * | current_password_length        | 4                               |
-	 * | current_password               | #current_password_length        |
-	 * | current_password_handle_length | 4                               |
-	 * | current_password_handle        | #current_password_handle_length |
-	 * +--------------------------------+---------------------------------+
-	 */
-	uint32_t uid;
-	uint32_t desired_password_length;
-	const uint8_t *desired_password;
-	uint32_t current_password_length;
-	const uint8_t *current_password;
-	uint32_t current_password_handle_length;
-	const uint8_t *current_password_handle;
-
-	const uint8_t *request = (const uint8_t *)params[0].memref.buffer;
-	const uint8_t *i_req = request;
-
-	/*
-	 * Enroll response layout
-	 * +--------------------------------+---------------------------------+
-	 * | Name                           | Number of bytes                 |
-	 * +--------------------------------+---------------------------------+
-	 * | error                          | 4                               |
-	 * +--------------------------------+---------------------------------+
-	 * | timeout                        | 4                               |
-	 * +------------------------------ OR --------------------------------+
-	 * | password_handle_length         | 4                               |
-	 * | password_handle                | #password_handle_length         |
-	 * +--------------------------------+---------------------------------+
-	 */
-	uint32_t error = ERROR_NONE;
-	uint32_t timeout = 0;
-	password_handle_t password_handle;
-
-	uint8_t *response = params[1].memref.buffer;
-	uint8_t *i_resp = response;
-
-	const uint32_t max_response_size = sizeof(uint32_t) +
-		sizeof(uint32_t) +
-		sizeof(password_handle_t);
-
-	secure_id_t user_id = 0;
-	uint64_t flags = 0;
-	salt_t salt;
-
-	deserialize_int(&i_req, &uid);
-	deserialize_blob(&i_req, &desired_password, &desired_password_length);
-	deserialize_blob(&i_req, &current_password, &current_password_length);
-	deserialize_blob(&i_req, &current_password_handle,
-			&current_password_handle_length);
-
-	// Check request buffer size
-	if (get_size(request, i_req) > params[0].memref.size) {
-		EMSG("Wrong request buffer size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	// Check response buffer size
-	if (max_response_size > params[1].memref.size) {
-		EMSG("Wrong response buffer size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	// Check password handle length
-	if (current_password_handle_length != 0 &&
-			current_password_handle_length != sizeof(password_handle_t)) {
-		EMSG("Wrong password handle size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	if (!current_password_handle_length) {
-		// Password handle does not match what is stored, generate new
-		// secure user_id
-		TEE_GenerateRandom(&user_id, sizeof(user_id));
-	} else {
-		uint64_t timestamp;
-		bool throttle;
-
-		password_handle_t *pw_handle =
-			(password_handle_t *)current_password_handle;
-		if (pw_handle->version > HANDLE_VERSION) {
-			EMSG("Wrong handle version %u, required version is %u",
-					pw_handle->version, HANDLE_VERSION);
-			error = ERROR_INVALID;
-			goto serialize_response;
-		}
-
-		user_id = pw_handle->user_id;
-		timestamp = GetTimestamp();
-
-		throttle = (pw_handle->version >= HANDLE_VERSION_THROTTLE);
-		if (throttle) {
-			failure_record_t record;
-			flags |= HANDLE_FLAG_THROTTLE_SECURE;
-			GetFailureRecord(user_id, &record);
-
-			if (ThrottleRequest(&record, timestamp, &timeout)) {
-				error = ERROR_RETRY;
-				goto serialize_response;
-			}
-
-			IncrementFailureRecord(&record, timestamp);
-		}
-
-		res = TA_DoVerify(pw_handle, current_password,
-				current_password_length);
-		switch (res) {
-		case TEE_TRUE:
-			break;
-		case TEE_FALSE:
-			if (throttle && timeout > 0) {
-				error = ERROR_RETRY;
-			} else {
-				error = ERROR_INVALID;
-			}
-			goto serialize_response;
-		default:
-			EMSG("Failed to verify password handle");
-			goto exit;
-		}
-	}
-
-	ClearFailureRecord(user_id);
-
-	TEE_GenerateRandom(&salt, sizeof(salt));
-	res = TA_CreatePasswordHandle(&password_handle, salt, user_id, flags,
-			HANDLE_VERSION, desired_password,
-			desired_password_length);
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to create password handle");
-		goto exit;
-	}
-
-serialize_response:
-	serialize_int(&i_resp, error);
-	switch (error) {
-	case ERROR_INVALID:
-	case ERROR_UNKNOWN:
-		break;
-	case ERROR_RETRY:
-		serialize_int(&i_resp, timeout);
-		break;
-	case ERROR_NONE:
-		serialize_blob(&i_resp, (const uint8_t *)&password_handle,
-				sizeof(password_handle));
-		break;
-	default:
-		EMSG("Unknown error message!");
-		res = TEE_ERROR_GENERIC;
-	}
-	params[1].memref.size = get_size(response, i_resp);
-exit:
-	DMSG("Enroll returns 0x%08X, error = %d", res, error);
-	return res;
-}
-
-static TEE_Result TA_Verify(TEE_Param params[TEE_NUM_PARAMS])
-{
-	TEE_Result res = TEE_SUCCESS;
-
-	/*
-	 * Verify request layout
-	 * +---------------------------------+----------------------------------+
-	 * | Name                            | Number of bytes                  |
-	 * +---------------------------------+----------------------------------+
-	 * | uid                             | 4                                |
-	 * | challenge                       | 8                                |
-	 * | enrolled_password_handle_length | 4                                |
-	 * | enrolled_password_handle        | #enrolled_password_handle_length |
-	 * | provided_password_length        | 4                                |
-	 * | provided_password               | #provided_password_length        |
-	 * +---------------------------------+----------------------------------+
-	 */
-	uint32_t uid;
-	uint64_t challenge;
-	uint32_t enrolled_password_handle_length;
-	const uint8_t *enrolled_password_handle;
-	uint32_t provided_password_length;
-	const uint8_t *provided_password;
-
-	const uint8_t *request = (const uint8_t *)params[0].memref.buffer;
-	const uint8_t *i_req = request;
-
-	/*
-	 * Verify response layout
-	 * +--------------------------------+---------------------------------+
-	 * | Name                           | Number of bytes                 |
-	 * +--------------------------------+---------------------------------+
-	 * | error                          | 4                               |
-	 * +--------------------------------+---------------------------------+
-	 * | retry_timeout                  | 4                               |
-	 * +------------------------------ OR --------------------------------+
-	 * | response_auth_token_length     | 4                               |
-	 * | response_auth_token            | #response_handle_length         |
-	 * | response_request_reenroll      | 4                               |
-	 * +--------------------------------+---------------------------------+
-	 */
-	uint32_t error = ERROR_NONE;
-	uint32_t timeout = 0;
-	hw_auth_token_t auth_token;
-	bool request_reenroll = false;
-
-	uint8_t *response = params[1].memref.buffer;
-	uint8_t *i_resp = response;
-
-	const uint32_t max_response_size = sizeof(uint32_t) +
-		sizeof(uint32_t) +
-		sizeof(password_handle_t) +
-		sizeof(uint32_t);
-
-	password_handle_t *password_handle;
-	secure_id_t user_id;
-	secure_id_t authenticator_id = 0;
-
-	uint64_t timestamp = GetTimestamp();
-	bool throttle;
-
-	deserialize_int(&i_req, &uid);
-	deserialize_int64(&i_req, &challenge);
-	deserialize_blob(&i_req, &enrolled_password_handle,
-			&enrolled_password_handle_length);
-	deserialize_blob(&i_req, &provided_password,
-			&provided_password_length);
-
-	// Check request buffer size
-	if (get_size(request, i_req) > params[0].memref.size) {
-		EMSG("Wrong request buffer size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	// Check response buffer size
-	if (max_response_size > params[1].memref.size) {
-		EMSG("Wrong response buffer size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	// Check password handle length
-	if (enrolled_password_handle_length == 0 ||
-			enrolled_password_handle_length != sizeof(password_handle_t)) {
-		EMSG("Wrong password handle size");
-		res = TEE_ERROR_BAD_PARAMETERS;
-		goto exit;
-	}
-
-	password_handle = (password_handle_t *)enrolled_password_handle;
-
-	if (password_handle->version > HANDLE_VERSION) {
-		EMSG("Wrong handle version %u, required version is %u",
-				password_handle->version, HANDLE_VERSION);
-		error = ERROR_INVALID;
-		goto serialize_response;
-	}
-
-	user_id = password_handle->user_id;
-
-	throttle = (password_handle->version >= HANDLE_VERSION_THROTTLE);
-	if (throttle) {
-		failure_record_t record;
-		GetFailureRecord(user_id, &record);
-
-		if (ThrottleRequest(&record, timestamp, &timeout)) {
-			error = ERROR_RETRY;
-			goto serialize_response;
-		}
-
-		IncrementFailureRecord(&record, timestamp);
-	} else {
-		request_reenroll = true;
-	}
-
-	res = TA_DoVerify(password_handle, provided_password,
-			provided_password_length);
-	switch (res) {
-	case TEE_TRUE:
-		TA_MintAuthToken(&auth_token, timestamp, user_id,
-				authenticator_id, challenge);
-		if (throttle) {
-			ClearFailureRecord(user_id);
-		}
-		goto serialize_response;
-	case TEE_FALSE:
-		if (throttle && timeout > 0) {
-			error = ERROR_RETRY;
-		} else {
-			error = ERROR_INVALID;
-		}
-		goto serialize_response;
-	default:
-		EMSG("Failed to verify password handle");
-		goto exit;
-	}
-
-serialize_response:
-	serialize_int(&i_resp, error);
-	switch (error) {
-	case ERROR_INVALID:
-	case ERROR_UNKNOWN:
-		break;
-	case ERROR_RETRY:
-		serialize_int(&i_resp, timeout);
-		break;
-	case ERROR_NONE:
-		serialize_blob(&i_resp, (uint8_t *)&auth_token, sizeof(auth_token));
-		serialize_int(&i_resp, (uint32_t) request_reenroll);
-		break;
-	default:
-		EMSG("Unknown error message!");
-		res = TEE_ERROR_GENERIC;
-	}
-	params[1].memref.size = get_size(response, i_resp);
-exit:
-	DMSG("Verify returns 0x%08X, error = %d", res, error);
-	return res;
-}
-
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
 			uint32_t param_types, TEE_Param params[TEE_NUM_PARAMS])
 {
-	if (TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
-			TEE_PARAM_TYPE_MEMREF_OUTPUT,
-			TEE_PARAM_TYPE_NONE,
-			TEE_PARAM_TYPE_NONE) != param_types) {
-		return TEE_ERROR_BAD_PARAMETERS;
+
+	// Decode param_types for debugging
+
+	// Print buffer sizes if they are memory references
+	if (TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INPUT ||
+	    TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
+	    TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INOUT) {
 	}
 
-	DMSG("Gatekeeper TA invoke command cmd_id %u", cmd_id);
-
-	switch (cmd_id) {
-	case GK_ENROLL:
-		return TA_Enroll(params);
-	case GK_VERIFY:
-		return TA_Verify(params);
-	default:
-		return TEE_ERROR_BAD_PARAMETERS;
+	if (TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INPUT ||
+	    TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
+	    TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INOUT) {
 	}
+
+	TEE_Result res = TEE_ERROR_GENERIC;
+	if (param_types != TEE_PARAM_TYPES(
+		TEE_PARAM_TYPE_MEMREF_INPUT,
+        TEE_PARAM_TYPE_MEMREF_OUTPUT,
+        TEE_PARAM_TYPE_NONE,
+        TEE_PARAM_TYPE_NONE))
+        return TEE_ERROR_BAD_PARAMETERS;
+
+    /* Initialize device */
+    gatekeeper_device_t dev;
+    gatekeeper_error_t error;
+    uint32_t resp_size;
+        /* Initialize device functions */
+    dev.impl = NULL; /* No implementation data needed for this example */
+    dev.get_auth_token_key = get_auth_token_key;
+    dev.get_password_key = GetMasterKey;
+    dev.compute_password_signature = compute_password_signature;
+    dev.get_random = get_random;
+    dev.compute_signature = compute_signature;
+    dev.get_milliseconds_since_boot = GetTimestamp;
+    dev.remove_user = delete_user;
+    dev.remove_all_users = delete_all_users;
+    dev.get_failure_record = GetFailureRecord;
+    dev.clear_failure_record = ClearFailureRecord;
+    dev.write_failure_record = WriteFailureRecord;
+    dev.is_hardware_backed = is_hardware_backed;
+
+    switch (cmd_id) {
+        case GK_ENROLL:
+            /* Create a new request to deserialize into */
+            gatekeeper_enroll_request_t deserialized_request;
+            gatekeeper_enroll_response_t enroll_response;
+
+            /* Explicitly zero out the structure to prevent uninitialized data issues */
+            memset(&deserialized_request, 0, sizeof(deserialized_request));
+            memset(&enroll_response, 0, sizeof(enroll_response));
+
+            /* Extra safety check for buffer size */
+            if (params[0].memref.size < 8) {
+                return TEE_ERROR_BAD_PARAMETERS;
+            }
+
+            error = gatekeeper_enroll_request_deserialize(
+                &deserialized_request,
+                (uint8_t *)params[0].memref.buffer,
+                (uint8_t *)params[0].memref.buffer + params[0].memref.size);
+            if (error != ERROR_NONE) {
+              return TEE_ERROR_BAD_PARAMETERS;
+            }
+            gatekeeper_enroll(&dev, &deserialized_request, &enroll_response);
+            resp_size = gatekeeper_enroll_response_get_size(&enroll_response);
+            res = gatekeeper_enroll_response_serialize(
+                &enroll_response, (uint8_t *)params[1].memref.buffer,
+                (uint8_t *)params[1].memref.buffer + resp_size);
+            if (res == 0)
+              return TEE_ERROR_GENERIC;
+            else
+              return TEE_SUCCESS;
+        case GK_VERIFY:
+            /* Create a new request to deserialize into */
+            gatekeeper_verify_request_t verify_deserialized_request;
+            gatekeeper_verify_response_t verify_response;
+
+            /* Explicitly zero out the structure to prevent uninitialized data issues */
+            memset(&verify_deserialized_request, 0, sizeof(verify_deserialized_request));
+            memset(&verify_response, 0, sizeof(verify_response));
+
+            /* Check if output buffer is large enough */
+            if (params[1].memref.size < 16) {
+                return TEE_ERROR_SHORT_BUFFER;
+            }
+
+            /* Extra safety check for input buffer size */
+            if (params[0].memref.size < 8) {
+                return TEE_ERROR_BAD_PARAMETERS;
+            }
+
+            /* STEP 1: Deserialize verify request */
+            error = gatekeeper_verify_request_deserialize(
+                &verify_deserialized_request,
+                (uint8_t *)params[0].memref.buffer,
+                (uint8_t *)params[0].memref.buffer + params[0].memref.size);
+
+            if (error != ERROR_NONE) {
+                return TEE_ERROR_BAD_PARAMETERS;
+            }
+
+            /* STEP 2: Process verify request */
+            gatekeeper_verify(&dev, &verify_deserialized_request, &verify_response);
+
+            /* STEP 3: Calculate response size */
+            resp_size = gatekeeper_verify_response_get_size(&verify_response);
+
+            /* Check if output buffer is large enough for response */
+            if (params[1].memref.size < resp_size) {
+                return TEE_ERROR_SHORT_BUFFER;
+            }
+
+            /* STEP 4: Serialize response */
+            res = gatekeeper_verify_response_serialize(
+                &verify_response,
+                (uint8_t *)params[1].memref.buffer,
+                (uint8_t *)params[1].memref.buffer + params[1].memref.size);
+
+
+            /* Check for serialization errors */
+            if (res == 0) {
+                return TEE_ERROR_GENERIC;
+            }
+
+            /* Set correct output size */
+            params[1].memref.size = res;
+
+            return TEE_SUCCESS;
+        case GK_DELETE_USER:
+          gatekeeper_delete_user_request_t del_user_deserialized_request;
+          gatekeeper_delete_user_response_t delete_user_response;
+
+          /* Explicitly zero out the structure to prevent uninitialized data
+           * issues */
+          memset(&del_user_deserialized_request, 0,
+                 sizeof(del_user_deserialized_request));
+          memset(&delete_user_response, 0, sizeof(delete_user_response));
+          /* Extra safety check for buffer size */
+          if (params[0].memref.size < 8) {
+            return TEE_ERROR_BAD_PARAMETERS;
+          }
+
+          /* CRITICAL FIX: Using actual buffer size instead of sizeof pointer */
+          error = gatekeeper_delete_user_request_deserialize(
+              &del_user_deserialized_request, (uint8_t *)params[0].memref.buffer,
+              (uint8_t *)params[0].memref.buffer + params[0].memref.size);
+          if (error != ERROR_NONE) {
+            return TEE_ERROR_BAD_PARAMETERS;
+          }
+          gatekeeper_delete_user(&dev, &del_user_deserialized_request,
+                                 &delete_user_response);
+          resp_size = gatekeeper_delete_user_response_get_size(
+              &delete_user_response);
+          res = gatekeeper_delete_user_response_serialize(
+              &delete_user_response, (uint8_t *)params[1].memref.buffer,
+              (uint8_t *)params[1].memref.buffer + resp_size);
+          if (res == 0)
+            return TEE_ERROR_GENERIC;
+          else
+            return TEE_SUCCESS;
+        case GK_DELETE_ALL_USERS:
+          gatekeeper_delete_all_users_request_t del_all_deserialized_request;
+          gatekeeper_delete_all_users_response_t delete_all_response;
+
+          /* Explicitly zero out the structure to prevent uninitialized data
+           * issues */
+          memset(&del_all_deserialized_request, 0,
+                 sizeof(del_all_deserialized_request));
+          memset(&delete_all_response, 0, sizeof(delete_all_response));
+          /* Extra safety check for buffer size */
+          if (params[0].memref.size < 8) {
+            return TEE_ERROR_BAD_PARAMETERS;
+          }
+
+          /* CRITICAL FIX: Using actual buffer size instead of sizeof pointer */
+          error = gatekeeper_delete_all_users_request_deserialize(
+              &del_all_deserialized_request, (uint8_t *)params[0].memref.buffer,
+              (uint8_t *)params[0].memref.buffer + params[0].memref.size);
+          if (error != ERROR_NONE) {
+            return TEE_ERROR_BAD_PARAMETERS;
+          }
+          gatekeeper_delete_all_users(&dev, &del_all_deserialized_request,
+                                      &delete_all_response);
+          resp_size = gatekeeper_delete_all_users_response_get_size(
+              &delete_all_response);
+          res = gatekeeper_delete_all_users_response_serialize(
+              &delete_all_response, (uint8_t *)params[1].memref.buffer,
+              (uint8_t *)params[1].memref.buffer + resp_size);
+          if (res == 0)
+            return TEE_ERROR_GENERIC;
+          else
+            return TEE_SUCCESS;
+        default:
+            return TEE_ERROR_BAD_PARAMETERS;
+    }
 
 	(void)&sess_ctx; /* Unused parameter */
 

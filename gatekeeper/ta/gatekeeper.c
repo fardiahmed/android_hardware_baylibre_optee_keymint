@@ -16,6 +16,7 @@
 #include "gatekeeper.h"
 #include <stddef.h>
 #include <utee_defines.h>
+#include "ta_gatekeeper.h"
 
 
 /* Buffer manipulation functions */
@@ -418,12 +419,12 @@ gatekeeper_error_t gatekeeper_mint_auth_token(gatekeeper_device_t *dev,
     /* Create and populate auth token structure */
     gatekeeper_hw_auth_token_t token;
 
-    token.version = 0; /* HW_AUTH_TOKEN_VERSION */
+    token.version = HW_AUTH_TOKEN_VERSION; /* HW_AUTH_TOKEN_VERSION */
     token.challenge = challenge;
     token.user_id = user_id;
     token.authenticator_id = authenticator_id;
     token.authenticator_type =
-        TEE_U32_TO_BIG_ENDIAN(0x01); /* HW_AUTH_PASSWORD */
+        TEE_U32_TO_BIG_ENDIAN(HW_AUTH_PASSWORD); /* HW_AUTH_PASSWORD = 1 << 0 */
     token.timestamp = TEE_U64_TO_BIG_ENDIAN(timestamp);
 
     const uint32_t hashable_length = sizeof(token.version) +

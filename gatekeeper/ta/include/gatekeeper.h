@@ -36,16 +36,6 @@ typedef enum {
     ERROR_NOT_IMPLEMENTED = 5,
 } gatekeeper_error_t;
 
-/*
- * GateKeeper command identifier
- */
-typedef enum {
-  GK_ENROLL,
-  GK_VERIFY,
-  GK_DELETE_USER,
-  GK_DELETE_ALL_USERS,
-} gatekeeper_command_t;
-
 /* Handle flags */
 #define GATEKEEPER_HANDLE_FLAG_THROTTLE_SECURE 1
 

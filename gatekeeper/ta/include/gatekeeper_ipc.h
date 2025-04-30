@@ -29,36 +29,31 @@
 		{ 0xac, 0x6f, 0x24, 0x25, 0xaf, 0x9e, 0xf9, 0xbb} }
 
 /*
- * GateKeeper command identifier
- */
-typedef enum {
-	GK_ENROLL,
-	GK_VERIFY,
-	GK_DELETE_USER,
-	GK_DELETE_ALL_USERS,
-} gatekeeper_command_t;
-
-/*
- * GateKeeper messages error codes
- */
-typedef enum {
-	ERROR_NONE = 0,
-	ERROR_INVALID,
-	ERROR_RETRY,
-	ERROR_UNKNOWN,
-} gatekeeper_error_t;
-
-/*
  * GateKeeper message size
  */
 
+#ifdef __cplusplus
 constexpr const uint32_t SEND_BUF_SIZE = 8192;
 constexpr const uint32_t RECV_BUF_SIZE = 8192;
+#else
+#define SEND_BUF_SIZE 8192
+#define RECV_BUF_SIZE 8192
+#endif
 #define GATEKEEPER_MAX_BUFFER_LENGTH (RECV_BUF_SIZE-sizeof(uint32_t))
 		
 struct gatekeeper_message {
     uint32_t cmd;
     uint8_t payload[0];
 };
+
+/*
+ * GateKeeper command identifier
+ */
+typedef enum {
+  GK_ENROLL,
+  GK_VERIFY,
+  GK_DELETE_USER,
+  GK_DELETE_ALL_USERS,
+} gatekeeper_command_t;
 
 #endif /* GATEKEEPER_IPC_H */
