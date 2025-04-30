@@ -28,6 +28,7 @@
 static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 
 static tee_km_context_t optee_km_context;
+static hmac_sharing_parameters_t *hmac_saved_parameters = NULL;
 
 static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS], uint32_t cmd_id)
 {
@@ -212,7 +213,6 @@ static uint32_t tee_get_os_patchlevel(void)
 
 static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PARAMS])
 {
-	static hmac_sharing_parameters_t *hmac_saved_parameters = NULL;
 	uint8_t *out = NULL;
 	uint8_t *out_end = NULL;
 	size_t out_size = 0;
@@ -234,8 +234,19 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 			return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 		}
 
+		/* Initialize the seed to an empty blob */
+		hmac_saved_parameters->seed.data = NULL;
+		hmac_saved_parameters->seed.data_length = 0;
+		
+		/* Generate random nonce */
 		TEE_GenerateRandom(hmac_saved_parameters->nonce, 32);
+		DMSG("[DEBUG] Generated new nonce for HMAC sharing");
 	}
+
+	DMSG("[DEBUG] Returning HMAC sharing parameters: seed len=%zu, nonce[0]=%02x%02x%02x%02x...",
+		hmac_saved_parameters->seed.data_length,
+		hmac_saved_parameters->nonce[0], hmac_saved_parameters->nonce[1],
+		hmac_saved_parameters->nonce[2], hmac_saved_parameters->nonce[3]);
 
 	out += TA_serialize_blob_akms(out, out_end, &hmac_saved_parameters->seed, &oob);
 	if (oob) {
@@ -249,6 +260,303 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
         params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	return KM_ERROR_OK;
+}
+
+static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *in = NULL;
+	uint8_t *in_end = NULL;
+	size_t in_size = 0;
+	uint8_t *out = NULL;
+	uint8_t *out_end = NULL;
+	size_t out_size = 0;
+	bool oob = false; /* out of bounds flag */
+	keymaster_error_t error = KM_ERROR_OK;
+	size_t param_count = 0;
+	size_t i = 0;
+	keymaster_blob_t *hmac_result = NULL;
+	TEE_OperationHandle op_hmac = TEE_HANDLE_NULL;
+	TEE_Result res = TEE_SUCCESS;
+	uint8_t hmac_key[32] = {0};
+	uint8_t *buffer = NULL;
+	size_t buffer_offset = 0;
+	size_t buffer_size = 0;
+	hmac_sharing_parameters_t *local_params = NULL;
+	bool found_self_param = false;
+	
+	DMSG("[DEBUG] %s: Start of computeSharedHmac", __func__);
+
+	/* Get saved parameters (should have been initialized in TA_getHmacSharingParameters) */
+	if (hmac_saved_parameters == NULL) {
+		EMSG("[DEBUG] %s: No saved HMAC parameters found, must call getHmacSharingParameters first", __func__);
+		return KM_ERROR_INVALID_ARGUMENT;
+	}
+	
+	/* Parse input parameters */
+	in = (uint8_t *)params[0].memref.buffer;
+	in_size = (size_t)params[0].memref.size;
+	in_end = in + in_size;
+	
+	out = (uint8_t *)params[1].memref.buffer;
+	out_size = (size_t)params[1].memref.size;
+	out_end = out + out_size;
+	
+	out += sizeof(keymaster_error_t);
+	
+	/* Deserialize number of parameters */
+	if (in_end < in + sizeof(uint32_t)) {
+		EMSG("[DEBUG] %s: Input buffer too small for parameter count", __func__);
+		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+	}
+	param_count = *(uint32_t *)in;
+	in += sizeof(uint32_t);
+	
+	DMSG("[DEBUG] %s: Processing %zu HMAC parameters", __func__, param_count);
+	
+	if (param_count == 0) {
+		EMSG("[DEBUG] %s: No HMAC parameters provided", __func__);
+		return KM_ERROR_INVALID_ARGUMENT;
+	}
+	
+	/* Allocate memory for local copy of parameters */
+	local_params = TEE_Malloc(param_count * sizeof(hmac_sharing_parameters_t), 
+	                         TEE_MALLOC_FILL_ZERO);
+	if (!local_params) {
+		EMSG("[DEBUG] %s: Failed to allocate memory for parameters", __func__);
+		return KM_ERROR_MEMORY_ALLOCATION_FAILED;
+	}
+	
+	/* Deserialize each parameter set */
+	for (i = 0; i < param_count; i++) {
+		keymaster_blob_t seed;
+		uint8_t nonce[32];
+		
+		/* Deserialize seed */
+		in += TA_deserialize_blob_akms(in, in_end, &seed, true, &error, true);
+		if (error != KM_ERROR_OK) {
+			EMSG("[DEBUG] %s: Failed to deserialize seed for parameter %zu", __func__, i);
+			goto exit;
+		}
+		
+		/* Validate seed length */
+		if (seed.data_length != 0 && seed.data_length != 32) {
+			EMSG("[DEBUG] %s: Invalid seed length %zu for parameter %zu", 
+			     __func__, seed.data_length, i);
+			error = KM_ERROR_INVALID_ARGUMENT;
+			goto exit;
+		}
+		
+		/* Copy seed to local params */
+		local_params[i].seed = seed;
+		
+		/* Deserialize nonce */
+		if (in_end < in + 32) {
+			EMSG("[DEBUG] %s: Input buffer too small for nonce", __func__);
+			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+			goto exit;
+		}
+		
+		TEE_MemMove(nonce, in, 32);
+		in += 32;
+		
+		/* Copy nonce to local params */
+		TEE_MemMove(local_params[i].nonce, nonce, 32);
+		
+		DMSG("[DEBUG] %s: Parameter %zu: seed length %zu, nonce[0]=%02x%02x%02x%02x...",
+		     __func__, i, seed.data_length, 
+		     local_params[i].nonce[0], local_params[i].nonce[1],
+		     local_params[i].nonce[2], local_params[i].nonce[3]);
+		
+		/* Check if this parameter matches our own saved parameters */
+		if (memcmp(local_params[i].nonce, hmac_saved_parameters->nonce, 32) == 0) {
+			DMSG("[DEBUG] %s: Found our own parameter at index %zu", __func__, i);
+			found_self_param = true;
+			
+			/* If own seed is corrupted, fail the operation */
+			if ((hmac_saved_parameters->seed.data_length != local_params[i].seed.data_length) ||
+			    (hmac_saved_parameters->seed.data_length > 0 && 
+			     memcmp(hmac_saved_parameters->seed.data, local_params[i].seed.data, 
+			           hmac_saved_parameters->seed.data_length) != 0)) {
+				EMSG("[DEBUG] %s: Our own seed has been modified!", __func__);
+				error = KM_ERROR_INVALID_ARGUMENT;
+				goto exit;
+			}
+		}
+	}
+	
+	if (!found_self_param) {
+		EMSG("[DEBUG] %s: Our own parameter is not in the parameter list", __func__);
+		error = KM_ERROR_INVALID_ARGUMENT;
+		goto exit;
+	}
+	
+	/* Calculate buffer size needed: sum of all seed lengths + sum of all nonce lengths */
+	buffer_size = 0;
+	for (i = 0; i < param_count; i++) {
+		buffer_size += (local_params[i].seed.data_length + 32); /* 32 is nonce length */
+	}
+	
+	DMSG("[DEBUG] %s: Total buffer size needed: %zu bytes", __func__, buffer_size);
+	
+	/* Allocate buffer for concatenating all data */
+	buffer = TEE_Malloc(buffer_size, 0);
+	if (!buffer) {
+		EMSG("[DEBUG] %s: Failed to allocate buffer", __func__);
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		goto exit;
+	}
+	
+	/* Concatenate all parameters (sorted by nonce) */
+	buffer_offset = 0;
+	
+	/* Simple sorting algorithm by nonce */
+	for (i = 0; i < param_count; i++) {
+		size_t min_idx = i;
+		size_t j;
+		
+		/* Find minimum nonce */
+		for (j = i + 1; j < param_count; j++) {
+			if (memcmp(local_params[j].nonce, local_params[min_idx].nonce, 32) < 0) {
+				min_idx = j;
+			}
+		}
+		
+		/* Swap if necessary */
+		if (min_idx != i) {
+			hmac_sharing_parameters_t temp = local_params[i];
+			local_params[i] = local_params[min_idx];
+			local_params[min_idx] = temp;
+		}
+		
+		/* Concatenate seed (if present) */
+		if (local_params[i].seed.data_length > 0) {
+			TEE_MemMove(buffer + buffer_offset, local_params[i].seed.data, 
+			            local_params[i].seed.data_length);
+			buffer_offset += local_params[i].seed.data_length;
+			DMSG("[DEBUG] %s: Added seed for param %zu, buffer_offset now %zu", 
+			     __func__, i, buffer_offset);
+		}
+		
+		/* Concatenate nonce */
+		TEE_MemMove(buffer + buffer_offset, local_params[i].nonce, 32);
+		buffer_offset += 32;
+		
+		DMSG("[DEBUG] %s: Added nonce for param %zu, buffer_offset now %zu", 
+		     __func__, i, buffer_offset);
+	}
+	
+	/* Create HMAC-SHA256 operation */
+	res = TEE_AllocateOperation(&op_hmac, TEE_ALG_HMAC_SHA256, TEE_MODE_MAC, 256);
+	if (res != TEE_SUCCESS) {
+		EMSG("[DEBUG] %s: Failed to allocate HMAC operation: 0x%x", __func__, res);
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto exit;
+	}
+	
+	/* Use all-zero key */
+	memset(hmac_key, 0, sizeof(hmac_key));
+	
+	/* Create HMAC key */
+	TEE_ObjectHandle key_handle;
+	res = TEE_AllocateTransientObject(TEE_TYPE_HMAC_SHA256, 256, &key_handle);
+	if (res != TEE_SUCCESS) {
+		EMSG("[DEBUG] %s: Failed to allocate key object: 0x%x", __func__, res);
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto exit;
+	}
+	
+	/* Populate key with zeros */
+	TEE_Attribute attr;
+	TEE_InitRefAttribute(&attr, TEE_ATTR_SECRET_VALUE, hmac_key, sizeof(hmac_key));
+	res = TEE_PopulateTransientObject(key_handle, &attr, 1);
+	if (res != TEE_SUCCESS) {
+		EMSG("[DEBUG] %s: Failed to populate key: 0x%x", __func__, res);
+		TEE_FreeTransientObject(key_handle);
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto exit;
+	}
+	
+	/* Set the key for HMAC operation */
+	res = TEE_SetOperationKey(op_hmac, key_handle);
+	if (res != TEE_SUCCESS) {
+		EMSG("[DEBUG] %s: Failed to set operation key: 0x%x", __func__, res);
+		TEE_FreeTransientObject(key_handle);
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto exit;
+	}
+	
+	TEE_FreeTransientObject(key_handle);
+	
+	/* Allocate memory for HMAC result */
+	hmac_result = TEE_Malloc(sizeof(keymaster_blob_t), TEE_MALLOC_FILL_ZERO);
+	if (!hmac_result) {
+		EMSG("[DEBUG] %s: Failed to allocate HMAC result", __func__);
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		goto exit;
+	}
+	
+	hmac_result->data = TEE_Malloc(32, 0);
+	if (!hmac_result->data) {
+		EMSG("[DEBUG] %s: Failed to allocate HMAC data", __func__);
+		error = KM_ERROR_MEMORY_ALLOCATION_FAILED;
+		goto exit;
+	}
+	hmac_result->data_length = 32;
+	
+	/* Compute HMAC */
+	TEE_MACInit(op_hmac, NULL, 0);
+	TEE_MACUpdate(op_hmac, buffer, buffer_offset);
+	res = TEE_MACComputeFinal(op_hmac, NULL, 0, hmac_result->data, &hmac_result->data_length);
+	if (res != TEE_SUCCESS) {
+		EMSG("[DEBUG] %s: HMAC computation failed: 0x%x", __func__, res);
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto exit;
+	}
+	
+	DMSG("[DEBUG] %s: HMAC computed successfully, result[0]=%02x%02x%02x%02x...",
+	     __func__, hmac_result->data[0], hmac_result->data[1], 
+	     hmac_result->data[2], hmac_result->data[3]);
+	
+	/* Serialize the result */
+	out += TA_serialize_blob_akms(out, out_end, hmac_result, &oob);
+	if (oob) {
+		EMSG("[DEBUG] %s: Output buffer too small", __func__);
+		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+		goto exit;
+	}
+	
+	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+	
+	DMSG("[DEBUG] %s: ComputeSharedHmac completed successfully", __func__);
+	
+exit:
+	/* Clean up */
+	if (op_hmac != TEE_HANDLE_NULL) {
+		TEE_FreeOperation(op_hmac);
+	}
+	
+	if (buffer) {
+		TEE_Free(buffer);
+	}
+	
+	if (local_params) {
+		/* Free seed data for each parameter */
+		for (i = 0; i < param_count; i++) {
+			if (local_params[i].seed.data) {
+				TEE_Free(local_params[i].seed.data);
+			}
+		}
+		TEE_Free(local_params);
+	}
+	
+	if (hmac_result) {
+		if (hmac_result->data) {
+			TEE_Free(hmac_result->data);
+		}
+		TEE_Free(hmac_result);
+	}
+	
+	return error;
 }
 
 static keymaster_error_t TA_verifyAuthorization(TEE_Param params[TEE_NUM_PARAMS])
@@ -1952,6 +2260,9 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_GET_SUPPORTED_IMPORT_FORMATS:
 	case KM_GET_SUPPORTED_EXPORT_FORMATS:
 	case KM_COMPUTE_SHARED_HMAC:
+		DMSG("KM_COMPUTE_SHARED_HMAC");
+		error = TA_computeSharedHmac(params);
+		break;
 	case KM_IMPORT_WRAPPED_KEY:
 	case KM_EARLY_BOOT_ENDED:
 	case KM_DEVICE_LOCKED:
