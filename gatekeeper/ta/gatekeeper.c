@@ -17,11 +17,6 @@
 #include <stddef.h>
 #include <utee_defines.h>
 
-/* Secure memory wipe helper - alternative to memset_s */
-static void secure_memzero(void *v, size_t n) {
-    volatile uint8_t *p = v;
-    while (n--) *p++ = 0;
-}
 
 /* Buffer manipulation functions */
 void gatekeeper_buffer_init(gatekeeper_buffer_t *buffer) {
@@ -80,7 +75,7 @@ void gatekeeper_buffer_free(gatekeeper_buffer_t *buffer) {
     if (buffer->buffer) {
         if (buffer->length > 0) {
             /* Safely zero memory */
-            secure_memzero(buffer->buffer, buffer->length);
+            memset(buffer->buffer, 0, buffer->length);
         }
 
         free(buffer->buffer);
@@ -157,42 +152,6 @@ bool gatekeeper_buffer_copy(gatekeeper_buffer_t *dest, const gatekeeper_buffer_t
     return true;
 }
 
-bool gatekeeper_buffer_move(gatekeeper_buffer_t *dest, gatekeeper_buffer_t *src) {
-    if (!dest || !src) return false;
-
-    gatekeeper_buffer_free(dest);
-
-    dest->buffer = src->buffer;
-    dest->length = src->length;
-
-    src->buffer = NULL;
-    src->length = 0;
-
-    return true;
-}
-
-bool gatekeeper_buffer_resize(gatekeeper_buffer_t *buffer, uint32_t new_length) {
-    if (!buffer) return false;
-
-    if (new_length == 0) {
-        gatekeeper_buffer_free(buffer);
-        return true;
-    }
-
-    uint8_t *new_buffer = (uint8_t*)malloc(new_length);
-    if (!new_buffer) return false;
-
-    if (buffer->buffer && buffer->length > 0) {
-        memcpy(new_buffer, buffer->buffer, (buffer->length < new_length) ? buffer->length : new_length);
-        secure_memzero(buffer->buffer, buffer->length);
-        free(buffer->buffer);
-    }
-
-    buffer->buffer = new_buffer;
-    buffer->length = new_length;
-
-    return true;
-}
 
 bool gatekeeper_buffer_is_valid(const gatekeeper_buffer_t *buffer) {
     return buffer && buffer->buffer && buffer->length > 0;

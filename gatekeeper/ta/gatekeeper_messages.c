@@ -473,13 +473,8 @@ gatekeeper_error_t gatekeeper_enroll_request_deserialize(gatekeeper_enroll_reque
         return ERROR_INVALID;
     }
 
-    /* Peek at size to validate */
-    uint32_t pw_size_peek;
-    memcpy(&pw_size_peek, buffer, sizeof(uint32_t));
-
-    /* Validate size */
-    if (pw_size_peek > 1024 * 1024 ||
-        buffer + sizeof(uint32_t) + pw_size_peek > end) {
+    /* Check if we have enough space for buffer data */
+    if (buffer + sizeof(uint32_t) > end) {
         return ERROR_INVALID;
     }
 
@@ -495,13 +490,8 @@ gatekeeper_error_t gatekeeper_enroll_request_deserialize(gatekeeper_enroll_reque
         return ERROR_INVALID;
     }
 
-    /* Peek at size to validate */
-    uint32_t enrolled_size_peek;
-    memcpy(&enrolled_size_peek, buffer, sizeof(uint32_t));
-
-    /* Validate size */
-    if (enrolled_size_peek > 1024 * 1024 ||
-        buffer + sizeof(uint32_t) + enrolled_size_peek > end) {
+    /* Check if we have enough space for buffer data */
+    if (buffer + sizeof(uint32_t) > end) {
         gatekeeper_buffer_free(&request->provided_password);
         return ERROR_INVALID;
     }
@@ -520,13 +510,8 @@ gatekeeper_error_t gatekeeper_enroll_request_deserialize(gatekeeper_enroll_reque
         return ERROR_INVALID;
     }
 
-    /* Peek at size to validate */
-    uint32_t handle_size_peek;
-    memcpy(&handle_size_peek, buffer, sizeof(uint32_t));
-
-    /* Validate size */
-    if (handle_size_peek > 1024 * 1024 ||
-        buffer + sizeof(uint32_t) + handle_size_peek > end) {
+    /* Check if we have enough space for buffer data */
+    if (buffer + sizeof(uint32_t) > end) {
         gatekeeper_buffer_free(&request->provided_password);
         gatekeeper_buffer_free(&request->enrolled_password);
         return ERROR_INVALID;
@@ -579,13 +564,6 @@ void gatekeeper_enroll_request_clear(gatekeeper_enroll_request_t *request) {
         return;
     }
 
-    /* Double check for corrupted memory patterns in request */
-    if ((uintptr_t)request < 1000 ||
-        (uintptr_t)&request->password_handle < (uintptr_t)request ||
-        (uintptr_t)&request->enrolled_password < (uintptr_t)request ||
-        (uintptr_t)&request->provided_password < (uintptr_t)request) {
-        return;
-    }
 
     /* Validate buffer states and free appropriately */
     if (request->password_handle.length > 0 && !request->password_handle.buffer) {
@@ -611,22 +589,6 @@ void gatekeeper_enroll_request_clear(gatekeeper_enroll_request_t *request) {
     request->base.user_id = 0;
     request->base.retry_timeout = 0;
 
-    /* Ensure all fields are NULL/0 for extra safety */
-    if (request->password_handle.buffer != NULL ||
-        request->password_handle.length != 0 ||
-        request->enrolled_password.buffer != NULL ||
-        request->enrolled_password.length != 0 ||
-        request->provided_password.buffer != NULL ||
-        request->provided_password.length != 0) {
-
-        /* Explicitly set to NULL/0 */
-        request->password_handle.buffer = NULL;
-        request->password_handle.length = 0;
-        request->enrolled_password.buffer = NULL;
-        request->enrolled_password.length = 0;
-        request->provided_password.buffer = NULL;
-        request->provided_password.length = 0;
-    }
 }
 
 /* Enroll Response */
@@ -663,20 +625,10 @@ uint32_t gatekeeper_enroll_response_serialize(const gatekeeper_enroll_response_t
 
     /* Only include enrolled password handle for success responses */
     if (response->base.error == ERROR_NONE) {
-        /* Check if handle is valid before trying to serialize it */
-        if (!response->enrolled_password_handle.buffer && response->enrolled_password_handle.length > 0) {
-            /* Initialize an empty buffer to avoid crashes */
-            gatekeeper_buffer_t empty_buffer = {NULL, 0};
-            uint32_t handle_size = gatekeeper_serialize_buffer(&empty_buffer, &buffer, end);
-            if (handle_size == 0) {
-                return 0;
-            }
-        } else {
-            /* Serialize the handle (could be empty) */
-            uint32_t handle_size = gatekeeper_serialize_buffer(&response->enrolled_password_handle, &buffer, end);
-            if (handle_size == 0) {
-                return 0;
-            }
+        /* Serialize the handle (could be empty) */
+        uint32_t handle_size = gatekeeper_serialize_buffer(&response->enrolled_password_handle, &buffer, end);
+        if (handle_size == 0) {
+            return 0;
         }
     }
 

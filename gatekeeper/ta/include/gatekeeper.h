@@ -186,8 +186,6 @@ void gatekeeper_buffer_init(gatekeeper_buffer_t *buffer);
 void gatekeeper_buffer_free(gatekeeper_buffer_t *buffer);
 bool gatekeeper_buffer_allocate(gatekeeper_buffer_t *buffer, uint32_t length);
 bool gatekeeper_buffer_copy(gatekeeper_buffer_t *dest, const gatekeeper_buffer_t *src);
-bool gatekeeper_buffer_move(gatekeeper_buffer_t *dest, gatekeeper_buffer_t *src);
-bool gatekeeper_buffer_resize(gatekeeper_buffer_t *buffer, uint32_t new_length);
 bool gatekeeper_buffer_is_valid(const gatekeeper_buffer_t *buffer);
 
 /* Main GateKeeper interface functions */
