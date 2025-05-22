@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -79,7 +79,7 @@ keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
 				   keymaster_operation_t **operation);
 
 keymaster_error_t TA_update_operation(const keymaster_operation_handle_t op_handle,
-				      keymaster_operation_t *operation);
+					  keymaster_operation_t *operation);
 
 keymaster_error_t TA_kill_old_operation(void);
 
@@ -89,8 +89,8 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 				   keymaster_operation_t *operation);
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
-				    const keymaster_operation_t *operation,
-				    bool *input_allocate_memory);
+					const keymaster_operation_t *operation,
+					bool *input_allocate_memory);
 
 void TA_add_to_nonce(keymaster_operation_t *operation, const uint64_t value);
 

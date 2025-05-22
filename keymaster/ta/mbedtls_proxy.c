@@ -39,36 +39,36 @@
 
 /*
  * RSA public keys:
- *  SubjectPublicKeyInfo  ::=  SEQUENCE  {          1 + 3
- *       algorithm            AlgorithmIdentifier,  1 + 1 (sequence)
- *                                                + 1 + 1 + 9 (rsa oid)
- *                                                + 1 + 1 (params null)
- *       subjectPublicKey     BIT STRING }          1 + 3 + (1 + below)
- *  RSAPublicKey ::= SEQUENCE {                     1 + 3
- *      modulus           INTEGER,  -- n            1 + 3 + MPI_MAX + 1
- *      publicExponent    INTEGER   -- e            1 + 3 + MPI_MAX + 1
- *  }
+ *	SubjectPublicKeyInfo  ::=  SEQUENCE	 {			1 + 3
+ *		 algorithm			  AlgorithmIdentifier,	1 + 1 (sequence)
+ *												  + 1 + 1 + 9 (rsa oid)
+ *												  + 1 + 1 (params null)
+ *		 subjectPublicKey	  BIT STRING }			1 + 3 + (1 + below)
+ *	RSAPublicKey ::= SEQUENCE {						1 + 3
+ *		modulus			  INTEGER,	-- n			1 + 3 + MPI_MAX + 1
+ *		publicExponent	  INTEGER	-- e			1 + 3 + MPI_MAX + 1
+ *	}
  */
 #define RSA_MAX_BYTES 38 + 2 * MBEDTLS_MPI_MAX_SIZE
 
 /*
  * EC public keys:
- *  SubjectPublicKeyInfo  ::=  SEQUENCE  {      1 + 2
- *    algorithm         AlgorithmIdentifier,    1 + 1 (sequence)
- *                                            + 1 + 1 + 7 (ec oid)
- *                                            + 1 + 1 + 9 (namedCurve oid)
- *    subjectPublicKey  BIT STRING              1 + 2 + 1               [1]
- *                                            + 1 (point format)        [1]
- *                                            + 2 * ECP_MAX (coords)    [1]
- *  }
+ *	SubjectPublicKeyInfo  ::=  SEQUENCE	 {		1 + 2
+ *	  algorithm			AlgorithmIdentifier,	1 + 1 (sequence)
+ *											  + 1 + 1 + 7 (ec oid)
+ *											  + 1 + 1 + 9 (namedCurve oid)
+ *	  subjectPublicKey	BIT STRING				1 + 2 + 1				[1]
+ *											  + 1 (point format)		[1]
+ *											  + 2 * ECP_MAX (coords)	[1]
+ *	}
  */
 #define EC_MAX_BYTES 30 + 2 * MBEDTLS_ECP_MAX_BYTES
 
 const char *cert_root_subject_rsa = "OU=" CERT_ROOT_ORG_UNIT_RSA ",O=" CERT_ROOT_ORG
-				    ",CN=" CERT_ROOT_ORG;
+					",CN=" CERT_ROOT_ORG;
 
 const char *cert_root_subject_ecc = "OU=" CERT_ROOT_ORG_UNIT_ECC ",O=" CERT_ROOT_ORG
-				    ",CN=" CERT_ROOT_ORG;
+					",CN=" CERT_ROOT_ORG;
 const char *cert_attest_key_subject = "CN=Android Keystore Key";
 
 const uint32_t cert_version = 2; /* x509 version of cert. v3 used. */
@@ -85,7 +85,7 @@ static uint8_t key_stub[32] = { 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
 				0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa };
 
 static uint8_t unique_id_stub[16] = { 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb,
-				      0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb };
+					  0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb };
 
 static unsigned int add_key_usage(keymaster_key_param_set_t *params)
 {
@@ -103,7 +103,7 @@ static unsigned int add_key_usage(keymaster_key_param_set_t *params)
 		case KM_PURPOSE_ENCRYPT:
 		case KM_PURPOSE_DECRYPT:
 			key_usage |= MBEDTLS_X509_KU_KEY_ENCIPHERMENT |
-				     MBEDTLS_X509_KU_DATA_ENCIPHERMENT;
+					 MBEDTLS_X509_KU_DATA_ENCIPHERMENT;
 			break;
 		default:
 			break;
@@ -291,8 +291,8 @@ static keymaster_error_t convert_epoch_to_date_str(uint32_t sec, unsigned char *
 
 /* Convert mbedtls_rsa_context* to TEE_Attributes array */
 static keymaster_error_t mbedtls_export_rsa(TEE_Attribute **attrs, uint32_t *attrs_count,
-					    uint32_t *key_size,
-					    mbedtls_pk_context *context)
+						uint32_t *key_size,
+						mbedtls_pk_context *context)
 {
 	mbedtls_rsa_context *ctx = context->MBEDTLS_PRIVATE(pk_ctx);
 	uint32_t max_attrs = KM_ATTR_COUNT_RSA, count = 0;
@@ -338,8 +338,8 @@ out:
 
 /* Convert mbedtls_ecdsa_context* to TEE_Attributes array */
 static keymaster_error_t mbedtls_export_ecdsa(TEE_Attribute **attrs,
-					      uint32_t *attrs_count, uint32_t *key_size,
-					      mbedtls_pk_context *context)
+						  uint32_t *attrs_count, uint32_t *key_size,
+						  mbedtls_pk_context *context)
 {
 	mbedtls_ecdsa_context *ctx = context->MBEDTLS_PRIVATE(pk_ctx);
 	uint32_t max_attrs = KM_ATTR_COUNT_EC, count = 0;
@@ -391,9 +391,9 @@ out:
 }
 
 keymaster_error_t mbedTLS_decode_pkcs8(keymaster_blob_t key_data, TEE_Attribute **attrs,
-				       uint32_t *attrs_count,
-				       const keymaster_algorithm_t algorithm,
-				       uint32_t *key_size, uint64_t *rsa_public_exponent)
+					   uint32_t *attrs_count,
+					   const keymaster_algorithm_t algorithm,
+					   uint32_t *key_size, uint64_t *rsa_public_exponent)
 {
 	mbedtls_pk_context pk;
 	keymaster_error_t ret = KM_ERROR_UNKNOWN_ERROR;
@@ -401,11 +401,11 @@ keymaster_error_t mbedTLS_decode_pkcs8(keymaster_blob_t key_data, TEE_Attribute 
 	uint64_t rsa_exp = 0;
 
 	keymaster_error_t (*pfn_export_ctx)(TEE_Attribute **, uint32_t *, uint32_t *,
-					    mbedtls_pk_context *);
+						mbedtls_pk_context *);
 
 	mbedtls_pk_init(&pk);
 	int mbedtls_ret = mbedtls_pk_parse_key(&pk, key_data.data, key_data.data_length, 
-					       NULL, 0, NULL, NULL);
+						   NULL, 0, NULL, NULL);
 	if (mbedtls_ret != 0) {
 		EMSG("Failed to parse pkcs8 key");
 		return KM_ERROR_INVALID_KEY_BLOB;
@@ -414,14 +414,14 @@ keymaster_error_t mbedTLS_decode_pkcs8(keymaster_blob_t key_data, TEE_Attribute 
 	pk_type = mbedtls_pk_get_type(&pk);
 
 	if ((algorithm == KM_ALGORITHM_RSA && pk_type != MBEDTLS_PK_RSA) ||
-	    (algorithm == KM_ALGORITHM_EC && pk_type != MBEDTLS_PK_ECKEY)) {
+		(algorithm == KM_ALGORITHM_EC && pk_type != MBEDTLS_PK_ECKEY)) {
 		EMSG("Algorithm mismatch.");
 		ret = KM_ERROR_INVALID_KEY_BLOB;
 		goto out;
 	}
 
 	if (algorithm == KM_ALGORITHM_RSA && rsa_public_exponent &&
-	    *rsa_public_exponent == UNDEFINED) {
+		*rsa_public_exponent == UNDEFINED) {
 		mbedtls_rsa_context *ctx = pk.MBEDTLS_PRIVATE(pk_ctx);
 		size_t len = mbedtls_mpi_size(&ctx->MBEDTLS_PRIVATE(E));
 
@@ -458,8 +458,8 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 	uint8_t key_attr_buf[EC_MAX_KEY_BUFFER_SIZE] = { 0 };
 	uint32_t key_attr_buf_size = EC_MAX_KEY_BUFFER_SIZE;
 	const uint32_t attr_ids[KM_ATTR_COUNT_EC] = { TEE_ATTR_ECC_PRIVATE_VALUE,
-						      TEE_ATTR_ECC_PUBLIC_VALUE_X,
-						      TEE_ATTR_ECC_PUBLIC_VALUE_Y };
+							  TEE_ATTR_ECC_PUBLIC_VALUE_X,
+							  TEE_ATTR_ECC_PUBLIC_VALUE_Y };
 
 	mbedtls_ecdsa_context *ecc = NULL;
 	mbedtls_mpi attrs[KM_ATTR_COUNT_EC - 1] = { { 0 } };
@@ -547,7 +547,7 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 								   key_attr_buf, 
 								   key_attr_buf_size)) != 0) {
 				EMSG("mbedtls_mpi_read_binary returned %d\n\n",
-				     mbedtls_ret);
+					 mbedtls_ret);
 				res = TEE_ERROR_BAD_FORMAT;
 
 				goto out;
@@ -573,7 +573,7 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 							   &key_attr_buf_size);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to get attribute %d size %d, res=%x", i,
-				     key_attr_buf_size, res);
+					 key_attr_buf_size, res);
 				goto out;
 			}
 
@@ -585,7 +585,7 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 								   key_attr_buf, 
 								   key_attr_buf_size)) != 0) {
 				EMSG("mbedtls_mpi_read_binary returned %d\n\n",
-				     mbedtls_ret);
+					 mbedtls_ret);
 				res = TEE_ERROR_BAD_FORMAT;
 
 				goto out;
@@ -598,20 +598,20 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 	 * to the same defined optee-os core:
 	 *
 	 *
-	 * #define TEE_ECC_CURVE_NIST_P192             0x00000001
-	 * #define TEE_ECC_CURVE_NIST_P224             0x00000002
-	 * #define TEE_ECC_CURVE_NIST_P256             0x00000003
-	 * #define TEE_ECC_CURVE_NIST_P384             0x00000004
-	 * #define TEE_ECC_CURVE_NIST_P521             0x00000005
+	 * #define TEE_ECC_CURVE_NIST_P192			   0x00000001
+	 * #define TEE_ECC_CURVE_NIST_P224			   0x00000002
+	 * #define TEE_ECC_CURVE_NIST_P256			   0x00000003
+	 * #define TEE_ECC_CURVE_NIST_P384			   0x00000004
+	 * #define TEE_ECC_CURVE_NIST_P521			   0x00000005
 	 *
 	 * enum mbedtls_ecp_group_id {
-	 *   MBEDTLS_ECP_DP_NONE = 0,
-	 *   MBEDTLS_ECP_DP_SECP192R1,
-	 *   MBEDTLS_ECP_DP_SECP224R1,
-	 *   MBEDTLS_ECP_DP_SECP256R1,
-	 *   MBEDTLS_ECP_DP_SECP384R1,
-	 *   MBEDTLS_ECP_DP_SECP521R1,
-	 *              ...
+	 *	 MBEDTLS_ECP_DP_NONE = 0,
+	 *	 MBEDTLS_ECP_DP_SECP192R1,
+	 *	 MBEDTLS_ECP_DP_SECP224R1,
+	 *	 MBEDTLS_ECP_DP_SECP256R1,
+	 *	 MBEDTLS_ECP_DP_SECP384R1,
+	 *	 MBEDTLS_ECP_DP_SECP521R1,
+	 *				...
 	 * }
 	 *
 	 */
@@ -623,11 +623,11 @@ static TEE_Result mbedTLS_import_ecc_pk(mbedtls_pk_context *pk,
 	}
 
 	if ((mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(X),
-					    &attrs[1]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Y),
-					    &attrs[2]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(d), &attrs[0]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_lset(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Z), 1) != 0)) {
+						&attrs[1]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Y),
+						&attrs[2]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_copy(&ecc->MBEDTLS_PRIVATE(d), &attrs[0]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_lset(&ecc->MBEDTLS_PRIVATE(Q).MBEDTLS_PRIVATE(Z), 1) != 0)) {
 		EMSG("mbedtls_ecc import failed returned %d\n\n", mbedtls_ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
@@ -657,13 +657,13 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 	uint32_t key_attr_buf_size = RSA_MAX_KEY_BUFFER_SIZE;
 	TEE_ObjectInfo obj_info;
 	const uint32_t attr_ids[KM_ATTR_COUNT_RSA] = { TEE_ATTR_RSA_MODULUS,
-						       TEE_ATTR_RSA_PUBLIC_EXPONENT,
-						       TEE_ATTR_RSA_PRIVATE_EXPONENT,
-						       TEE_ATTR_RSA_PRIME1,
-						       TEE_ATTR_RSA_PRIME2,
-						       TEE_ATTR_RSA_EXPONENT1,
-						       TEE_ATTR_RSA_EXPONENT2,
-						       TEE_ATTR_RSA_COEFFICIENT };
+							   TEE_ATTR_RSA_PUBLIC_EXPONENT,
+							   TEE_ATTR_RSA_PRIVATE_EXPONENT,
+							   TEE_ATTR_RSA_PRIME1,
+							   TEE_ATTR_RSA_PRIME2,
+							   TEE_ATTR_RSA_EXPONENT1,
+							   TEE_ATTR_RSA_EXPONENT2,
+							   TEE_ATTR_RSA_COEFFICIENT };
 
 	/* mbedTLS-related definitions */
 	mbedtls_rsa_context *rsa = NULL;
@@ -753,7 +753,7 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 								   key_attr_buf,
 								   key_attr_buf_size)) != 0) {
 				EMSG("mbedtls_mpi_read_binary returned %d\n\n",
-				     mbedtls_ret);
+					 mbedtls_ret);
 				res = TEE_ERROR_BAD_FORMAT;
 
 				goto out;
@@ -770,7 +770,7 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 							   &key_attr_buf_size);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to get attribute %d size %d, res=%x", i,
-				     key_attr_buf_size, res);
+					 key_attr_buf_size, res);
 				goto out;
 			}
 
@@ -782,7 +782,7 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 								  key_attr_buf,
 								  key_attr_buf_size)) != 0) {
 				EMSG("mbedtls_mpi_read_binary returned %d\n\n",
-				     mbedtls_ret);
+					 mbedtls_ret);
 				res = TEE_ERROR_BAD_FORMAT;
 
 				goto out;
@@ -792,10 +792,10 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 
 	/* N, P, Q, D, E */
 	if ((mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(N), &attrs[0]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(P), &attrs[3]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(Q), &attrs[4]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(D), &attrs[2]) != 0) ||
-	    (mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(E), &attrs[1]) != 0)) {
+		(mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(P), &attrs[3]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(Q), &attrs[4]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(D), &attrs[2]) != 0) ||
+		(mbedtls_ret = mbedtls_mpi_copy(&rsa->MBEDTLS_PRIVATE(E), &attrs[1]) != 0)) {
 		EMSG("mbedtls_rsa import failed returned %d\n\n", mbedtls_ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
@@ -811,7 +811,7 @@ static TEE_Result mbedTLS_import_rsa_pk(mbedtls_pk_context *pk,
 	mbedtls_mpi_sub_int(&K, &rsa->MBEDTLS_PRIVATE(Q), 1);
 	mbedtls_mpi_mod_mpi(&rsa->MBEDTLS_PRIVATE(DQ), &rsa->MBEDTLS_PRIVATE(D), &K);
 	mbedtls_mpi_inv_mod(&rsa->MBEDTLS_PRIVATE(QP), &rsa->MBEDTLS_PRIVATE(Q),
-			    &rsa->MBEDTLS_PRIVATE(P));
+				&rsa->MBEDTLS_PRIVATE(P));
 
 out:
 	mbedtls_ctr_drbg_free(&ctr_drbg);
@@ -928,7 +928,7 @@ static TEE_Result mbedTLS_gen_root_cert(mbedtls_pk_context *issuer_key,
 	ret = mbedtls_x509write_crt_set_subject_key_identifier(&crt);
 	if (ret) {
 		EMSG("mbedtls_x509write_crt_set_subject_key_identifier: failed: -%#x",
-		     -ret);
+			 -ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
 	}
@@ -936,7 +936,7 @@ static TEE_Result mbedTLS_gen_root_cert(mbedtls_pk_context *issuer_key,
 	ret = mbedtls_x509write_crt_set_authority_key_identifier(&crt);
 	if (ret) {
 		EMSG("mbedtls_x509write_crt_set_authority_key_identifier: failed: -%#x",
-		     -ret);
+			 -ret);
 		res = TEE_ERROR_BAD_FORMAT;
 		goto out;
 	}
@@ -983,7 +983,7 @@ out:
 }
 
 keymaster_error_t mbedTLS_encode_key(keymaster_blob_t *export_data, const uint32_t type,
-				     const TEE_ObjectHandle *obj_h)
+					 const TEE_ObjectHandle *obj_h)
 {
 	mbedtls_pk_context pk;
 	uint8_t buf[RSA_MAX_BYTES > EC_MAX_BYTES ? RSA_MAX_BYTES : EC_MAX_BYTES];
@@ -1025,7 +1025,7 @@ out:
 }
 
 TEE_Result mbedTLS_gen_root_cert_rsa(TEE_ObjectHandle rsa_root_key,
-				     keymaster_blob_t *rsa_root_cert)
+					 keymaster_blob_t *rsa_root_cert)
 {
 	TEE_Result res = TEE_SUCCESS;
 	mbedtls_pk_context issuer_key;
@@ -1060,7 +1060,7 @@ out:
 }
 
 TEE_Result mbedTLS_gen_root_cert_ecc(TEE_ObjectHandle ecc_root_key,
-				     keymaster_blob_t *ecc_root_cert)
+					 keymaster_blob_t *ecc_root_cert)
 {
 	TEE_Result res = TEE_SUCCESS;
 	mbedtls_pk_context issuer_key;
@@ -1236,10 +1236,10 @@ out:
 }
 
 TEE_Result mbedTLS_gen_attest_key_cert(TEE_ObjectHandle root_key,
-				       TEE_ObjectHandle attest_key,
-				       keymaster_algorithm_t alg, unsigned int key_usage,
-				       keymaster_cert_chain_t *cert_chain,
-				       keymaster_blob_t *attest_ext)
+					   TEE_ObjectHandle attest_key,
+					   keymaster_algorithm_t alg, unsigned int key_usage,
+					   keymaster_cert_chain_t *cert_chain,
+					   keymaster_blob_t *attest_ext)
 {
 	int ret;
 	TEE_Result res = TEE_SUCCESS;
@@ -1254,7 +1254,7 @@ TEE_Result mbedTLS_gen_attest_key_cert(TEE_ObjectHandle root_key,
 	DMSG("%s %d", __func__, __LINE__);
 
 	cert = (mbedtls_x509_crt *)TEE_Malloc(sizeof(mbedtls_x509_crt),
-					      TEE_MALLOC_FILL_ZERO);
+						  TEE_MALLOC_FILL_ZERO);
 	if (cert == NULL)
 		return TEE_ERROR_OUT_OF_MEMORY;
 
@@ -1285,15 +1285,15 @@ TEE_Result mbedTLS_gen_attest_key_cert(TEE_ObjectHandle root_key,
 	}
 
 	res = (alg == KM_ALGORITHM_RSA) ?
-		      mbedTLS_import_rsa_pk(&subject_key, attest_key) :
-		      mbedTLS_import_ecc_pk(&subject_key, attest_key);
+			  mbedTLS_import_rsa_pk(&subject_key, attest_key) :
+			  mbedTLS_import_ecc_pk(&subject_key, attest_key);
 	if (res) {
 		EMSG("mbedTLS_import_pk for alg %d: failed: %#x", alg, res);
 		goto out;
 	}
 
 	res = mbedTLS_attest_key_cert(&issuer_key, &subject_key, key_usage, attest_cert,
-				      attest_ext, cert_subject);
+					  attest_ext, cert_subject);
 	if (res) {
 		EMSG("mbedTLS_attest_key_cert: failed: %#x", res);
 		goto out;
@@ -1323,7 +1323,7 @@ keymaster_error_t mbedTLS_encode_ec_sign(uint8_t *out, uint32_t *out_l)
 	mbedtls_mpi_init(&s);
 
 	if (mbedtls_mpi_read_binary(&r, out, r_size) ||
-	    mbedtls_mpi_read_binary(&s, out + r_size, s_size)) {
+		mbedtls_mpi_read_binary(&s, out + r_size, s_size)) {
 		EMSG("Failed to read binary signature");
 		goto err;
 	}
@@ -1350,7 +1350,7 @@ keymaster_error_t mbedTLS_encode_ec_sign(uint8_t *out, uint32_t *out_l)
 
 	total_len += len;
 	len = mbedtls_asn1_write_tag(&p, buf,
-				     MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE);
+					 MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE);
 	if (len < 0) {
 		EMSG("Failed to write ASN1 tags");
 		goto err;
@@ -1425,7 +1425,7 @@ keymaster_error_t mbedTLS_decode_ec_sign(keymaster_blob_t *sig, uint32_t key_siz
 	slen = key_size;
 
 	if (mbedtls_mpi_write_binary(&r, sig->data, rlen) ||
-	    mbedtls_mpi_write_binary(&s, sig->data + rlen, slen)) {
+		mbedtls_mpi_write_binary(&s, sig->data + rlen, slen)) {
 		EMSG("Failed to export bignum data to buffer");
 		goto err;
 	}
@@ -1440,15 +1440,15 @@ err:
 }
 
 /**
- * \brief           Writes RootOfTrust to a buffer
+ * \brief			Writes RootOfTrust to a buffer
  *
- * \note            This function works backwards in data buffer.
+ * \note			This function works backwards in data buffer.
  *
- * \param p         Pointer to the array to be populated. If no memory allocated
- *		    - allocation will be processed inside this routine.
- * \param len	    Length of resulting array.
+ * \param p			Pointer to the array to be populated. If no memory allocated
+ *			- allocation will be processed inside this routine.
+ * \param len		Length of resulting array.
  *
- * \return          0 on success, -1 on failure.
+ * \return			0 on success, -1 on failure.
  */
 static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 {
@@ -1460,21 +1460,21 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 	int lock_state = 0;
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_enum(&ptr, start, verified_boot));
+				 mbedtls_asn1_write_enum(&ptr, start, verified_boot));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_bool(&ptr, start, lock_state));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_octet_string(&ptr, start,
-								      key_stub,
-								      sizeof(key_stub)));
+									  key_stub,
+									  sizeof(key_stub)));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
+				 mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_tag(&ptr, start,
-						    MBEDTLS_ASN1_CONSTRUCTED |
-							    MBEDTLS_ASN1_SEQUENCE));
+				 mbedtls_asn1_write_tag(&ptr, start,
+							MBEDTLS_ASN1_CONSTRUCTED |
+								MBEDTLS_ASN1_SEQUENCE));
 
 	if (!*p) {
 		*p = TEE_Malloc((uint32_t)len_ret, TEE_MALLOC_FILL_ZERO);
@@ -1492,17 +1492,17 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 }
 
 /**
- * \brief           Writes array of integers to ASN1 SET OF INTEGER
+ * \brief			Writes array of integers to ASN1 SET OF INTEGER
  *
- * \note            This function works backwards in data buffer.
+ * \note			This function works backwards in data buffer.
  *
- * \param arr       The integer array to write.
- * \param size      Number of elements in array.
- * \param p	    Pointer to the array to be populated. If no memory allocated
- *		    - allocation will be processed inside this routine.
- * \param len	    Length of resulting array.
+ * \param arr		The integer array to write.
+ * \param size		Number of elements in array.
+ * \param p		Pointer to the array to be populated. If no memory allocated
+ *			- allocation will be processed inside this routine.
+ * \param len		Length of resulting array.
  *
- * \return          0 on success, -1 on failure.
+ * \return			0 on success, -1 on failure.
   */
 static int asn1_write_set_of_int(uint32_t *arr, unsigned long size, unsigned char **p,
 				 uint32_t *len)
@@ -1516,15 +1516,15 @@ static int asn1_write_set_of_int(uint32_t *arr, unsigned long size, unsigned cha
 	while (count > 0) {
 		count--;
 		MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_int(&ptr, start,
-								     (int)(arr[count])));
+									 (int)(arr[count])));
 	}
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
+				 mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_tag(&ptr, start,
-							     MBEDTLS_ASN1_CONSTRUCTED |
-							     MBEDTLS_ASN1_SET));
+								 MBEDTLS_ASN1_CONSTRUCTED |
+								 MBEDTLS_ASN1_SET));
 
 	if (!*p) {
 		*p = TEE_Malloc((uint32_t)len_ret, TEE_MALLOC_FILL_ZERO);
@@ -1543,9 +1543,9 @@ static int asn1_write_set_of_int(uint32_t *arr, unsigned long size, unsigned cha
 
 typedef struct asn1_buf {
 	int context_specific;
-	int tag;	       /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
-	size_t len;	       /**< ASN1 length, in octets. */
-	void *p;	       /**< ASN1 data, e.g. in ASCII. */
+	int tag;		   /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
+	size_t len;		   /**< ASN1 length, in octets. */
+	void *p;		   /**< ASN1 data, e.g. in ASCII. */
 } asn1_buf;
 
 typedef struct asn1_sequence {
@@ -1667,7 +1667,7 @@ static size_t get_params_by_tag(keymaster_key_param_set_t *src, keymaster_tag_t 
 			keymaster_blob_t *val = dst;
 			blob.data_length = src->params[i].key_param.blob.data_length;
 			blob.data = TEE_Malloc((uint32_t)blob.data_length,
-					       TEE_MALLOC_FILL_ZERO);
+						   TEE_MALLOC_FILL_ZERO);
 
 			if (!blob.data) {
 				EMSG("Failed to allocate memory");
@@ -1675,7 +1675,7 @@ static size_t get_params_by_tag(keymaster_key_param_set_t *src, keymaster_tag_t 
 			}
 
 			memcpy(blob.data, src->params[i].key_param.blob.data,
-			       blob.data_length);
+				   blob.data_length);
 
 			*val = blob;
 			break;
@@ -1690,7 +1690,7 @@ static size_t get_params_by_tag(keymaster_key_param_set_t *src, keymaster_tag_t 
 }
 
 static size_t extract_param(param_enforcement *params, size_t len, keymaster_tag_t tag,
-			    void *tag_val, bool *is_hw)
+				void *tag_val, bool *is_hw)
 {
 	size_t i, ret = 0;
 
@@ -1706,17 +1706,17 @@ static size_t extract_param(param_enforcement *params, size_t len, keymaster_tag
 }
 
 /**
- * \brief          Adds data to ASN1 SEQUENCE
+ * \brief		   Adds data to ASN1 SEQUENCE
  *
  * \note	   All blobs will NOT be copied while adding to sequence.
  *		   In case of releasing sequence memory by asn1_sequence_free
  *		   all blobs will be released.
  *
- * \param dst      Target sequence to be expanded.
- * \param p        ASN1 data, e.g. in ASCII.
- * \param tag      ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING.
- * \param len      ASN1 length, in octets.
- * \return         0 on success, -1 on failure
+ * \param dst	   Target sequence to be expanded.
+ * \param p		   ASN1 data, e.g. in ASCII.
+ * \param tag	   ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING.
+ * \param len	   ASN1 length, in octets.
+ * \return		   0 on success, -1 on failure
  */
 static int asn1_add_to_sequence(asn1_sequence **dst, void *p, size_t len,
 				keymaster_tag_t tag, int context)
@@ -1767,7 +1767,7 @@ static int asn1_add_to_sequence(asn1_sequence **dst, void *p, size_t len,
 		unsigned char *ptr = NULL;
 		if (asn1_write_set_of_int(p, len, &ptr, &tlen)) {
 			EMSG("Failed to add tag %s value to sequence.",
-			     TA_tag_to_str(tag));
+				 TA_tag_to_str(tag));
 			goto err;
 		}
 
@@ -1888,7 +1888,7 @@ static int mbedtls_asn1_write_int_tag(unsigned char **p, unsigned char *start, i
 		len += (size_t)ret;
 	} else {
 		unsigned char tag = MBEDTLS_ASN1_CONSTRUCTED |
-				    MBEDTLS_ASN1_CONTEXT_SPECIFIC | (unsigned char)value;
+					MBEDTLS_ASN1_CONTEXT_SPECIFIC | (unsigned char)value;
 		len = (size_t)mbedtls_asn1_write_tag(p, start, tag);
 	}
 
@@ -1896,7 +1896,7 @@ static int mbedtls_asn1_write_int_tag(unsigned char **p, unsigned char *start, i
 }
 
 static int write_asn1_sequence(unsigned char **p, unsigned char *start,
-			       asn1_sequence *seq)
+				   asn1_sequence *seq)
 {
 	int len_total = 0;
 	int ret = 0;
@@ -1932,8 +1932,8 @@ static int write_asn1_sequence(unsigned char **p, unsigned char *start,
 
 		if (len_ret <= 0) {
 			EMSG("Failed to write tag %d with context"
-			     "%d",
-			     seq->buf.tag, seq->buf.context_specific);
+				 "%d",
+				 seq->buf.tag, seq->buf.context_specific);
 			return -1;
 		}
 
@@ -1956,20 +1956,20 @@ static int write_asn1_sequence(unsigned char **p, unsigned char *start,
 	}
 
 	MBEDTLS_ASN1_CHK_ADD(len_total,
-			     mbedtls_asn1_write_len(p, start, (size_t)len_total));
+				 mbedtls_asn1_write_len(p, start, (size_t)len_total));
 
 	MBEDTLS_ASN1_CHK_ADD(len_total,
-			     mbedtls_asn1_write_tag(p, start,
-						    MBEDTLS_ASN1_CONSTRUCTED |
-						    MBEDTLS_ASN1_SEQUENCE));
+				 mbedtls_asn1_write_tag(p, start,
+							MBEDTLS_ASN1_CONSTRUCTED |
+							MBEDTLS_ASN1_SEQUENCE));
 
 	return len_total;
 }
 
 static int write_authorization_lists(keymaster_key_characteristics_t *chr,
-				     keymaster_key_param_set_t *attest_params,
-				     uint8_t verified_boot, unsigned char **p,
-				     unsigned char *start)
+					 keymaster_key_param_set_t *attest_params,
+					 uint8_t verified_boot, unsigned char **p,
+					 unsigned char *start)
 {
 	size_t i = 0;
 	asn1_sequence *sw_auth_seq = NULL, *hw_auth_seq = NULL;
@@ -1977,8 +1977,8 @@ static int write_authorization_lists(keymaster_key_characteristics_t *chr,
 	int ret = 0, len_ret = 0;
 
 	param_enforcement params[] = { { &chr->sw_enforced, false },
-				       { &chr->hw_enforced, true },
-				       { attest_params, false } };
+					   { &chr->hw_enforced, true },
+					   { attest_params, false } };
 
 	for (i = 0; i < sizeof(auth_tag_list) / sizeof(auth_tag_list[0]); i++) {
 		/* Buffers to store possible tag values */
@@ -2052,7 +2052,7 @@ static int write_authorization_lists(keymaster_key_characteristics_t *chr,
 			continue;
 
 		DMSG("Tag %s, count = %zu, HW_ENFORCED = %d",
-		     TA_tag_to_str(auth_tag_list[i].tag), par_count, is_hw);
+			 TA_tag_to_str(auth_tag_list[i].tag), par_count, is_hw);
 
 		asn1_sequence **seq = is_hw ? &hw_auth_seq : &sw_auth_seq;
 
@@ -2100,48 +2100,48 @@ static keymaster_error_t mbedTLS_gen_att_extension(keymaster_key_characteristics
 	unsigned char *p = start + sizeof(buf);
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     write_authorization_lists(chr, attest_params, verified_boot,
-						       &p, start));
+				 write_authorization_lists(chr, attest_params, verified_boot,
+							   &p, start));
 
 	if (includeUniqueID) {
 		MBEDTLS_ASN1_CHK_ADD(len_ret,
-				     mbedtls_asn1_write_octet_string(&p, start,
-								     unique_id_stub,
-								     sizeof(unique_id_stub)));
+					 mbedtls_asn1_write_octet_string(&p, start,
+									 unique_id_stub,
+									 sizeof(unique_id_stub)));
 	} else {
 		MBEDTLS_ASN1_CHK_ADD(len_ret,
-				     mbedtls_asn1_write_octet_string(&p, start,
-								     unique_id_stub,
-								     0));
+					 mbedtls_asn1_write_octet_string(&p, start,
+									 unique_id_stub,
+									 0));
 	}
 
 	if (get_params_by_tag(attest_params, KM_TAG_ATTESTATION_CHALLENGE, &challenge)) {
 		MBEDTLS_ASN1_CHK_ADD(len_ret,
-				     mbedtls_asn1_write_octet_string(&p, start,
-								     challenge.data,
-								     challenge.data_length));
+					 mbedtls_asn1_write_octet_string(&p, start,
+									 challenge.data,
+									 challenge.data_length));
 		TEE_Free(challenge.data);
 	}
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
+				 mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_int(&p, start, KEYMASTER_VERSION));
+				 mbedtls_asn1_write_int(&p, start, KEYMASTER_VERSION));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
+				 mbedtls_asn1_write_enum(&p, start, KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_int(&p, start, ATTESTATION_VERSION));
+				 mbedtls_asn1_write_int(&p, start, ATTESTATION_VERSION));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_len(&p, start, (uint32_t)len_ret));
+				 mbedtls_asn1_write_len(&p, start, (uint32_t)len_ret));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
-			     mbedtls_asn1_write_tag(&p, start,
-						    MBEDTLS_ASN1_CONSTRUCTED |
-							    MBEDTLS_ASN1_SEQUENCE));
+				 mbedtls_asn1_write_tag(&p, start,
+							MBEDTLS_ASN1_CONSTRUCTED |
+								MBEDTLS_ASN1_SEQUENCE));
 
 	ext->data = TEE_Malloc((uint32_t)len_ret, TEE_MALLOC_FILL_ZERO);
 	if (!ext->data) {
@@ -2157,11 +2157,11 @@ static keymaster_error_t mbedTLS_gen_att_extension(keymaster_key_characteristics
 }
 
 TEE_Result TA_gen_attest_cert(TEE_ObjectHandle attestedKey,
-			      keymaster_key_param_set_t *attest_params,
-			      keymaster_key_characteristics_t *key_chr,
-			      uint8_t verified_boot, bool includeUniqueID,
-			      keymaster_algorithm_t alg,
-			      keymaster_cert_chain_t *cert_chain)
+				  keymaster_key_param_set_t *attest_params,
+				  keymaster_key_characteristics_t *key_chr,
+				  uint8_t verified_boot, bool includeUniqueID,
+				  keymaster_algorithm_t alg,
+				  keymaster_cert_chain_t *cert_chain)
 {
 	TEE_Result res = TEE_SUCCESS;
 	TEE_ObjectHandle rootAttKey = TEE_HANDLE_NULL;
@@ -2175,14 +2175,14 @@ TEE_Result TA_gen_attest_cert(TEE_ObjectHandle attestedKey,
 
 	//Serialize root EC/RSA attestation key (for sign)
 	res = alg == KM_ALGORITHM_EC ? TA_open_ec_attest_key(&rootAttKey) :
-				       TA_open_rsa_attest_key(&rootAttKey);
+					   TA_open_rsa_attest_key(&rootAttKey);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to open root EC attestation key, res=%x", res);
 		goto error_1;
 	}
 
 	if (mbedTLS_gen_att_extension(key_chr, attest_params, verified_boot,
-				      includeUniqueID, &attest_ext)) {
+					  includeUniqueID, &attest_ext)) {
 		res = TEE_ERROR_GENERIC;
 		EMSG("Failed to generate attestation extension");
 		goto error_1;

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -86,7 +86,7 @@ keymaster_error_t TA_abort_operation(const keymaster_operation_handle_t op_handl
 			operations[i].output_saved.data = NULL;
 			operations[i].output_saved.data_length = 0;
 			TEE_MemFill(operations[i].key_id, 0,
-				    sizeof(operations[i].key_id));
+					sizeof(operations[i].key_id));
 			break;
 		}
 	}
@@ -129,8 +129,8 @@ keymaster_error_t TA_kill_old_operation(void)
 	oldest = operations[0];
 	for (uint32_t i = 1; i < KM_MAX_OPERATION; i++) {
 		if (oldest.last_access->seconds > operations[i].last_access->seconds ||
-		    (oldest.last_access->seconds == operations[i].last_access->seconds &&
-		     oldest.last_access->millis > operations[i].last_access->millis)) {
+			(oldest.last_access->seconds == operations[i].last_access->seconds &&
+			 oldest.last_access->millis > operations[i].last_access->millis)) {
 			oldest = operations[i];
 		}
 	}
@@ -152,7 +152,7 @@ keymaster_error_t TA_try_start_operation(
 			TEE_GetSystemTime(&cur_t);
 			/* freed when operation aborted (TA_abort_operation) */
 			operations[i].key = TEE_Malloc(sizeof(keymaster_key_blob_t),
-						       TEE_MALLOC_FILL_ZERO);
+							   TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].key) {
 				EMSG("Failed to allocate memory for operation key struct");
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -160,14 +160,14 @@ keymaster_error_t TA_try_start_operation(
 			operations[i].key->key_material_size = key.key_material_size;
 			/* freed when operation aborted (TA_abort_operation) */
 			operations[i].key->key_material = TEE_Malloc(key.key_material_size,
-								     TEE_MALLOC_FILL_ZERO);
+									 TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].key->key_material) {
 				EMSG("Failed to allocate memory for operation key data");
 				TEE_Free(operations[i].key);
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
 			TEE_MemMove(operations[i].key->key_material, key.key_material,
-				    key.key_material_size);
+					key.key_material_size);
 			operations[i].last_access = &cur_t;
 			operations[i].min_sec = min_sec;
 			operations[i].operation = operation;
@@ -179,7 +179,7 @@ keymaster_error_t TA_try_start_operation(
 			operations[i].mode = mode;
 			operations[i].digestLength = get_digest_size(&digest) / 8; /*in bytes*/
 			operations[i].nonce.data = TEE_Malloc(nonce.data_length,
-							      TEE_MALLOC_FILL_ZERO);
+								  TEE_MALLOC_FILL_ZERO);
 			if (!operations[i].nonce.data) {
 				EMSG("Failed to allocate memory for nonce");
 				TEE_Free(operations[i].key->key_material);
@@ -187,11 +187,11 @@ keymaster_error_t TA_try_start_operation(
 				return KM_ERROR_MEMORY_ALLOCATION_FAILED;
 			}
 			TEE_MemMove(operations[i].nonce.data, nonce.data,
-				    nonce.data_length);
+					nonce.data_length);
 			operations[i].nonce.data_length = nonce.data_length;
 			operations[i].op_handle = op_handle;
 			memcpy(operations[i].key_id, key_id,
-			       sizeof(operations[i].key_id));
+				   sizeof(operations[i].key_id));
 			return KM_ERROR_OK;
 		}
 	}
@@ -208,16 +208,16 @@ keymaster_error_t TA_start_operation(
 	const keymaster_blob_t nonce, uint8_t *key_id)
 {
 	keymaster_error_t res = TA_try_start_operation(op_handle, key, min_sec, operation,
-						       purpose, digest_op, do_auth,
-						       padding, mode, mac_length, digest,
-						       nonce, key_id);
+							   purpose, digest_op, do_auth,
+							   padding, mode, mac_length, digest,
+							   nonce, key_id);
 	if (res != KM_ERROR_OK) {
 		res = TA_kill_old_operation();
 		if (res == KM_ERROR_OK) {
 			res = TA_try_start_operation(op_handle, key, min_sec, operation,
-						     purpose, digest_op, do_auth, padding,
-						     mode, mac_length, digest, nonce,
-						     key_id);
+							 purpose, digest_op, do_auth, padding,
+							 mode, mac_length, digest, nonce,
+							 key_id);
 		}
 	}
 	return res;
@@ -242,7 +242,7 @@ keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
 }
 
 keymaster_error_t TA_update_operation(keymaster_operation_handle_t op_handle,
-				      keymaster_operation_t *operation)
+					  keymaster_operation_t *operation)
 {
 	keymaster_error_t res = KM_ERROR_INVALID_OPERATION_HANDLE;
 
@@ -291,8 +291,8 @@ keymaster_error_t TA_store_sf_data(const keymaster_blob_t *input,
 }
 
 keymaster_error_t TA_append_sf_data(keymaster_blob_t *input,
-				    const keymaster_operation_t *operation,
-				    bool *input_allocate_memory)
+					const keymaster_operation_t *operation,
+					bool *input_allocate_memory)
 {
 	uint32_t size = 0;
 	uint32_t padding = 0;

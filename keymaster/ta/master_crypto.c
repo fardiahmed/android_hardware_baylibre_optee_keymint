@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,7 +41,7 @@ TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
 	}
 
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, objID, sizeof(objID),
-				       TEE_DATA_FLAG_ACCESS_READ, &object);
+					   TEE_DATA_FLAG_ACCESS_READ, &object);
 
 	if (res == TEE_SUCCESS) {
 		//Key size is fixed
@@ -59,7 +59,7 @@ TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
 		}
 
 		TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, keyData,
-				     sizeof(keyData));
+					 sizeof(keyData));
 
 		res = TEE_AllocateTransientObject(TEE_TYPE_AES, KEY_LENGTH * BITS_IN_BYTE,
 						  &masterKey);
@@ -68,7 +68,7 @@ TEE_Result TA_open_secret_key(TEE_ObjectHandle *secretKey)
 							  sizeof(attrs) / sizeof(TEE_Attribute));
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to populate transient object, res = %x",
-				     res);
+					 res);
 				TEE_FreeTransientObject(masterKey);
 				masterKey = TEE_HANDLE_NULL;
 			}
@@ -99,7 +99,7 @@ TEE_Result TA_create_secret_key(void)
 
 	DMSG("%s %d", __func__, __LINE__);
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, objID, sizeof(objID),
-				       TEE_DATA_FLAG_ACCESS_READ, &object);
+					   TEE_DATA_FLAG_ACCESS_READ, &object);
 
 	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
 		//No such key, create it
@@ -130,7 +130,7 @@ TEE_Result TA_create_secret_key(void)
 
 error:
 		(res == TEE_SUCCESS) ? TEE_CloseObject(object) :
-				       TEE_CloseAndDeletePersistentObject(object);
+					   TEE_CloseAndDeletePersistentObject(object);
 
 	} else if (res == TEE_SUCCESS) {
 		//Key already exits

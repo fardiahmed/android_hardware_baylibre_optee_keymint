@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,7 @@ extern "C" {
  * Structures and enums have been taken from keymaster_defs.h
  */
 /**
- * Authorization tags each have an associated type.  This enumeration facilitates tagging each with
+ * Authorization tags each have an associated type.	 This enumeration facilitates tagging each with
  * a type, by using the high four bits (of an implied 32-bit unsigned enum value) to specify up to
  * 16 data types.  These values are ORed with tag IDs to generate the final tag ID values.
  */
@@ -60,29 +60,29 @@ typedef enum {
 	 */
 
 	/* Crypto parameters */
-	KM_TAG_PURPOSE = KM_ENUM_REP | 1,    /* keymaster_purpose_t. */
-	KM_TAG_ALGORITHM = KM_ENUM | 2,      /* keymaster_algorithm_t. */
-	KM_TAG_KEY_SIZE = KM_UINT | 3,       /* Key size in bits. */
+	KM_TAG_PURPOSE = KM_ENUM_REP | 1,	 /* keymaster_purpose_t. */
+	KM_TAG_ALGORITHM = KM_ENUM | 2,		 /* keymaster_algorithm_t. */
+	KM_TAG_KEY_SIZE = KM_UINT | 3,		 /* Key size in bits. */
 	KM_TAG_BLOCK_MODE = KM_ENUM_REP | 4, /* keymaster_block_mode_t. */
-	KM_TAG_DIGEST = KM_ENUM_REP | 5,     /* keymaster_digest_t. */
-	KM_TAG_PADDING = KM_ENUM_REP | 6,    /* keymaster_padding_t. */
-	KM_TAG_CALLER_NONCE = KM_BOOL | 7,   /* Allow caller to specify nonce or IV. */
+	KM_TAG_DIGEST = KM_ENUM_REP | 5,	 /* keymaster_digest_t. */
+	KM_TAG_PADDING = KM_ENUM_REP | 6,	 /* keymaster_padding_t. */
+	KM_TAG_CALLER_NONCE = KM_BOOL | 7,	 /* Allow caller to specify nonce or IV. */
 	KM_TAG_MIN_MAC_LENGTH = KM_UINT | 8, /* Minimum length of MAC or AEAD authentication tag in
 										  * bits. */
-	KM_TAG_KDF = KM_ENUM_REP | 9,        /* keymaster_kdf_t (keymaster2) */
-	KM_TAG_EC_CURVE = KM_ENUM | 10,      /* keymaster_ec_curve_t (keymaster2) */
+	KM_TAG_KDF = KM_ENUM_REP | 9,		 /* keymaster_kdf_t (keymaster2) */
+	KM_TAG_EC_CURVE = KM_ENUM | 10,		 /* keymaster_ec_curve_t (keymaster2) */
 
 	/* Algorithm-specific. */
 	KM_TAG_RSA_PUBLIC_EXPONENT = KM_ULONG | 200,
 	KM_TAG_ECIES_SINGLE_HASH_MODE = KM_BOOL | 201, /* Whether the ephemeral public key is fed into
 													* the KDF */
-	KM_TAG_INCLUDE_UNIQUE_ID = KM_BOOL | 202,      /* If true, attestation certificates for this key
+	KM_TAG_INCLUDE_UNIQUE_ID = KM_BOOL | 202,	   /* If true, attestation certificates for this key
 													* will contain an application-scoped and
 													* time-bounded device-unique ID. (keymaster2) */
 
 	/* Other hardware-enforced. */
 	KM_TAG_BLOB_USAGE_REQUIREMENTS = KM_ENUM | 301, /* keymaster_key_blob_usage_requirements_t */
-	KM_TAG_BOOTLOADER_ONLY = KM_BOOL | 302,         /* Usable only by bootloader */
+	KM_TAG_BOOTLOADER_ONLY = KM_BOOL | 302,			/* Usable only by bootloader */
 
 	/*
 	 * Tags that should be semantically enforced by hardware if possible and will otherwise be
@@ -90,32 +90,32 @@ typedef enum {
 	 */
 
 	/* Key validity period */
-	KM_TAG_ACTIVE_DATETIME = KM_DATE | 400,             /* Start of validity */
+	KM_TAG_ACTIVE_DATETIME = KM_DATE | 400,				/* Start of validity */
 	KM_TAG_ORIGINATION_EXPIRE_DATETIME = KM_DATE | 401, /* Date when new "messages" should no
 														   longer be created. */
-	KM_TAG_USAGE_EXPIRE_DATETIME = KM_DATE | 402,       /* Date when existing "messages" should no
+	KM_TAG_USAGE_EXPIRE_DATETIME = KM_DATE | 402,		/* Date when existing "messages" should no
 														   longer be trusted. */
-	KM_TAG_MIN_SECONDS_BETWEEN_OPS = KM_UINT | 403,     /* Minimum elapsed time between
+	KM_TAG_MIN_SECONDS_BETWEEN_OPS = KM_UINT | 403,		/* Minimum elapsed time between
 														   cryptographic operations with the key. */
-	KM_TAG_MAX_USES_PER_BOOT = KM_UINT | 404,           /* Number of times the key can be used per
+	KM_TAG_MAX_USES_PER_BOOT = KM_UINT | 404,			/* Number of times the key can be used per
 														   boot. */
 
 	/* User authentication */
-	KM_TAG_ALL_USERS = KM_BOOL | 500,           /* Reserved for future use -- ignore */
-	KM_TAG_USER_ID = KM_UINT | 501,             /* Reserved for future use -- ignore */
+	KM_TAG_ALL_USERS = KM_BOOL | 500,			/* Reserved for future use -- ignore */
+	KM_TAG_USER_ID = KM_UINT | 501,				/* Reserved for future use -- ignore */
 	KM_TAG_USER_SECURE_ID = KM_ULONG_REP | 502, /* Secure ID of authorized user or authenticator(s).
 												   Disallowed if KM_TAG_ALL_USERS or
 												   KM_TAG_NO_AUTH_REQUIRED is present. */
-	KM_TAG_NO_AUTH_REQUIRED = KM_BOOL | 503,    /* If key is usable without authentication. */
-	KM_TAG_USER_AUTH_TYPE = KM_ENUM | 504,      /* Bitmask of authenticator types allowed when
+	KM_TAG_NO_AUTH_REQUIRED = KM_BOOL | 503,	/* If key is usable without authentication. */
+	KM_TAG_USER_AUTH_TYPE = KM_ENUM | 504,		/* Bitmask of authenticator types allowed when
 												 * KM_TAG_USER_SECURE_ID contains a secure user ID,
 												 * rather than a secure authenticator ID.  Defined in
 												 * hw_authenticator_type_t in hw_auth_token.h. */
-	KM_TAG_AUTH_TIMEOUT = KM_UINT | 505,        /* Required freshness of user authentication for
+	KM_TAG_AUTH_TIMEOUT = KM_UINT | 505,		/* Required freshness of user authentication for
 												   private/secret key operations, in seconds.
 												   Public key operations require no authentication.
 												   If absent, authentication is required for every
-												   use.  Authentication state is lost when the
+												   use.	 Authentication state is lost when the
 												   device is powered off. */
 	KM_TAG_ALLOW_WHILE_ON_BODY = KM_BOOL | 506, /* Allow key to be used after authentication timeout
 												 * if device is still on-body (requires secure
@@ -124,9 +124,9 @@ typedef enum {
 	/* Application access control */
 	KM_TAG_ALL_APPLICATIONS = KM_BOOL | 600, /* Specified to indicate key is usable by all
 											  * applications. */
-	KM_TAG_APPLICATION_ID = KM_BYTES | 601,  /* Byte string identifying the authorized
+	KM_TAG_APPLICATION_ID = KM_BYTES | 601,	 /* Byte string identifying the authorized
 											  * application. */
-	KM_TAG_EXPORTABLE = KM_BOOL | 602,       /* If true, private/secret key can be exported, but
+	KM_TAG_EXPORTABLE = KM_BOOL | 602,		 /* If true, private/secret key can be exported, but
 											  * only if all access control requirements for use are
 											  * met. (keymaster2) */
 
@@ -134,31 +134,31 @@ typedef enum {
 	 * Semantically unenforceable tags, either because they have no specific meaning or because
 	 * they're informational only.
 	 */
-	KM_TAG_APPLICATION_DATA = KM_BYTES | 700,      /* Data provided by authorized application. */
-	KM_TAG_CREATION_DATETIME = KM_DATE | 701,      /* Key creation time */
-	KM_TAG_ORIGIN = KM_ENUM | 702,                 /* keymaster_key_origin_t. */
-	KM_TAG_ROLLBACK_RESISTANT = KM_BOOL | 703,     /* Whether key is rollback-resistant. */
-	KM_TAG_ROOT_OF_TRUST = KM_BYTES | 704,         /* Root of trust ID. */
-	KM_TAG_OS_VERSION = KM_UINT | 705,             /* Version of system (keymaster2) */
-	KM_TAG_OS_PATCHLEVEL = KM_UINT | 706,          /* Patch level of system (keymaster2) */
-	KM_TAG_UNIQUE_ID = KM_BYTES | 707,             /* Used to provide unique ID in attestation */
+	KM_TAG_APPLICATION_DATA = KM_BYTES | 700,	   /* Data provided by authorized application. */
+	KM_TAG_CREATION_DATETIME = KM_DATE | 701,	   /* Key creation time */
+	KM_TAG_ORIGIN = KM_ENUM | 702,				   /* keymaster_key_origin_t. */
+	KM_TAG_ROLLBACK_RESISTANT = KM_BOOL | 703,	   /* Whether key is rollback-resistant. */
+	KM_TAG_ROOT_OF_TRUST = KM_BYTES | 704,		   /* Root of trust ID. */
+	KM_TAG_OS_VERSION = KM_UINT | 705,			   /* Version of system (keymaster2) */
+	KM_TAG_OS_PATCHLEVEL = KM_UINT | 706,		   /* Patch level of system (keymaster2) */
+	KM_TAG_UNIQUE_ID = KM_BYTES | 707,			   /* Used to provide unique ID in attestation */
 	KM_TAG_ATTESTATION_CHALLENGE = KM_BYTES | 708, /* Used to provide challenge in attestation */
 	KM_TAG_ATTESTATION_APPLICATION_ID = KM_BYTES | 709, /* Used to identify the set of possible
-							     * applications of which one has initiated a
-							     * key attestation
-							     */
+								 * applications of which one has initiated a
+								 * key attestation
+								 */
 
 	/* Tags used only to provide data to or receive data from operations */
 	KM_TAG_ASSOCIATED_DATA = KM_BYTES | 1000, /* Used to provide associated data for AEAD modes. */
-	KM_TAG_NONCE = KM_BYTES | 1001,           /* Nonce or Initialization Vector */
-	KM_TAG_AUTH_TOKEN = KM_BYTES | 1002,      /* Authentication token that proves secure user
-												 authentication has been performed.  Structure
+	KM_TAG_NONCE = KM_BYTES | 1001,			  /* Nonce or Initialization Vector */
+	KM_TAG_AUTH_TOKEN = KM_BYTES | 1002,	  /* Authentication token that proves secure user
+												 authentication has been performed.	 Structure
 												 defined in hw_auth_token_t in hw_auth_token.h. */
-	KM_TAG_MAC_LENGTH = KM_UINT | 1003,       /* MAC or AEAD authentication tag length in
+	KM_TAG_MAC_LENGTH = KM_UINT | 1003,		  /* MAC or AEAD authentication tag length in
 											   * bits. */
 
 	KM_TAG_RESET_SINCE_ID_ROTATION = KM_BOOL | 1004, /* Whether the device has beeen factory reset
-														since the last unique ID rotation.  Used for
+														since the last unique ID rotation.	Used for
 														key attestation. */
 } keymaster_tag_t;
 
@@ -181,7 +181,7 @@ typedef enum {
 
 /**
  * Padding modes that may be applied to plaintext for encryption operations.  This list includes
- * padding modes for both symmetric and asymmetric algorithms.  Note that implementations should not
+ * padding modes for both symmetric and asymmetric algorithms.	Note that implementations should not
  * provide all possible combinations of algorithm and padding, only the
  * cryptographically-appropriate pairs.
  */
@@ -199,13 +199,13 @@ typedef enum {
  */
 typedef enum {
 	/* Unauthenticated modes, usable only for encryption/decryption and not generally recommended
-     * except for compatibility with existing other protocols. */
+	 * except for compatibility with existing other protocols. */
 	KM_MODE_ECB = 1,
 	KM_MODE_CBC = 2,
 	KM_MODE_CTR = 3,
 
-	/* Authenticated modes, usable for encryption/decryption and signing/verification.  Recommended
-     * over unauthenticated modes for all purposes. */
+	/* Authenticated modes, usable for encryption/decryption and signing/verification.	Recommended
+	 * over unauthenticated modes for all purposes. */
 	KM_MODE_GCM = 32,
 } keymaster_block_mode_t;
 
@@ -215,7 +215,7 @@ typedef enum {
 typedef enum {
 	KM_DIGEST_NONE = 0,
 	KM_DIGEST_MD5 = 1, /* Optional, may not be implemented in hardware, will be handled in software
-			    * if needed. */
+				* if needed. */
 	KM_DIGEST_SHA1 = 2,
 	KM_DIGEST_SHA_2_224 = 3,
 	KM_DIGEST_SHA_2_256 = 4,
@@ -253,13 +253,13 @@ typedef enum {
 } keymaster_ec_curve_t;
 
 /**
- * The origin of a key (or pair), i.e. where it was generated.  Note that KM_TAG_ORIGIN can be found
+ * The origin of a key (or pair), i.e. where it was generated.	Note that KM_TAG_ORIGIN can be found
  * in either the hardware-enforced or software-enforced list for a key, indicating whether the key
  * is hardware or software-based.  Specifically, a key with KM_ORIGIN_GENERATED in the
  * hardware-enforced list is guaranteed never to have existed outide the secure hardware.
  */
 typedef enum {
-	KM_ORIGIN_GENERATED = 0, /* Generated in keymaster.  Should not exist outside the TEE. */
+	KM_ORIGIN_GENERATED = 0, /* Generated in keymaster.	 Should not exist outside the TEE. */
 	KM_ORIGIN_DERIVED = 1,	 /* Derived inside keymaster.  Likely exists off-device. */
 	KM_ORIGIN_IMPORTED = 2,	 /* Imported into keymaster.  Existed as cleartext in Android. */
 	KM_ORIGIN_UNKNOWN = 3,	 /* Keymaster did not record origin.  This value can only be seen on
@@ -269,8 +269,8 @@ typedef enum {
 } keymaster_key_origin_t;
 
 /**
- * Usability requirements of key blobs.  This defines what system functionality must be available
- * for the key to function.  For example, key "blobs" which are actually handles referencing
+ * Usability requirements of key blobs.	 This defines what system functionality must be available
+ * for the key to function.	 For example, key "blobs" which are actually handles referencing
  * encrypted key material stored in the file system cannot be used until the file system is
  * available, and should have BLOB_REQUIRES_FILE_SYSTEM.  Other requirements entries will be added
  * as needed for implementations.
@@ -284,10 +284,10 @@ typedef enum {
  * Possible purposes of a key (or pair).
  */
 typedef enum {
-	KM_PURPOSE_ENCRYPT = 0,    /* Usable with RSA, EC and AES keys. */
-	KM_PURPOSE_DECRYPT = 1,    /* Usable with RSA, EC and AES keys. */
-	KM_PURPOSE_SIGN = 2,       /* Usable with RSA, EC and HMAC keys. */
-	KM_PURPOSE_VERIFY = 3,     /* Usable with RSA, EC and HMAC keys. */
+	KM_PURPOSE_ENCRYPT = 0,	   /* Usable with RSA, EC and AES keys. */
+	KM_PURPOSE_DECRYPT = 1,	   /* Usable with RSA, EC and AES keys. */
+	KM_PURPOSE_SIGN = 2,	   /* Usable with RSA, EC and HMAC keys. */
+	KM_PURPOSE_VERIFY = 3,	   /* Usable with RSA, EC and HMAC keys. */
 	KM_PURPOSE_DERIVE_KEY = 4, /* Usable with EC keys. */
 } keymaster_purpose_t;
 
@@ -300,10 +300,10 @@ typedef struct {
 	keymaster_tag_t tag;
 	union {
 		uint32_t enumerated;   /* KM_ENUM and KM_ENUM_REP */
-		bool boolean;	       /* KM_BOOL */
-		uint32_t integer;      /* KM_INT and KM_INT_REP */
+		bool boolean;		   /* KM_BOOL */
+		uint32_t integer;	   /* KM_INT and KM_INT_REP */
 		uint64_t long_integer; /* KM_LONG */
-		uint64_t date_time;    /* KM_DATE */
+		uint64_t date_time;	   /* KM_DATE */
 		keymaster_blob_t blob; /* KM_BIGNUM and KM_BYTES*/
 	} key_param;
 } keymaster_key_param_t;
@@ -325,15 +325,15 @@ typedef struct {
 } keymaster_version_t;
 
 enum KmVersion {
-    KEYMASTER_1 = 10,
-    KEYMASTER_1_1 = 11,
-    KEYMASTER_2 = 20,
-    KEYMASTER_3 = 30,
-    KEYMASTER_4 = 40,
-    KEYMASTER_4_1 = 41,
-    KEYMINT_1 = 100,
-    KEYMINT_2 = 200,
-    KEYMINT_3 = 300,
+	KEYMASTER_1 = 10,
+	KEYMASTER_1_1 = 11,
+	KEYMASTER_2 = 20,
+	KEYMASTER_3 = 30,
+	KEYMASTER_4 = 40,
+	KEYMASTER_4_1 = 41,
+	KEYMINT_1 = 100,
+	KEYMINT_2 = 200,
+	KEYMINT_3 = 300,
 };
 
 typedef struct {
@@ -345,7 +345,7 @@ typedef struct {
 /**
  * Parameters that define a key's characteristics, including authorized modes of usage and access
  * control restrictions.  The parameters are divided into two categories, those that are enforced by
- * secure hardware, and those that are not.  For a software-only keymaster implementation the
+ * secure hardware, and those that are not.	 For a software-only keymaster implementation the
  * enforced array must NULL.  Hardware implementations must enforce everything in the enforced
  * array.
  */
@@ -365,9 +365,9 @@ typedef struct {
 } keymaster_cert_chain_t;
 
 typedef enum {
-    KM_SECURITY_LEVEL_SOFTWARE = 0,
-    KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT = 1,
-    KM_SECURITY_LEVEL_STRONGBOX = 2,
+	KM_SECURITY_LEVEL_SOFTWARE = 0,
+	KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT = 1,
+	KM_SECURITY_LEVEL_STRONGBOX = 2,
 } keymaster_security_level_t;
 
 /**
@@ -382,7 +382,7 @@ typedef enum {
 /**
  * The keymaster operation API consists of begin, update, finish and abort. This is the type of the
  * handle used to tie the sequence of calls together.  A 64-bit value is used because it's important
- * that handles not be predictable.  Implementations must use strong random numbers for handle
+ * that handles not be predictable.	 Implementations must use strong random numbers for handle
  * values.
  */
 typedef uint64_t keymaster_operation_handle_t;
@@ -471,12 +471,12 @@ static inline keymaster_tag_type_t keymaster_tag_get_type(keymaster_tag_t tag)
  * Data format for an authentication record used to prove successful authentication.
  */
 typedef struct __attribute__((__packed__)) {
-	uint8_t version;	     /* Current version is 0 */
+	uint8_t version;		 /* Current version is 0 */
 	uint64_t challenge;
-	uint64_t user_id;	     /* secure user ID, not Android user ID */
-	uint64_t authenticator_id;   /* secure authenticator ID */
+	uint64_t user_id;		 /* secure user ID, not Android user ID */
+	uint64_t authenticator_id;	 /* secure authenticator ID */
 	uint32_t authenticator_type; /* hw_authenticator_type_t, in network order */
-	uint64_t timestamp;	     /* in network order */
+	uint64_t timestamp;		 /* in network order */
 	uint8_t hmac[32];
 } hw_auth_token_t;
 

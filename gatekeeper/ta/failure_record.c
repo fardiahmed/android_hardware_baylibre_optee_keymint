@@ -227,7 +227,7 @@ bool is_hardware_backed(gatekeeper_device_t * dev) {
 * Initialize secure keys for the TA
 */
 TEE_Result init_secure_keys(void) {
-	TEE_Result res = TEE_ERROR_GENERIC;
+    TEE_Result res = TEE_ERROR_GENERIC;
     TEE_ObjectHandle secretObj = TEE_HANDLE_NULL;
 
     res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
@@ -261,34 +261,34 @@ TEE_Result init_secure_keys(void) {
 void GetMasterKey(gatekeeper_device_t *dev, const uint8_t **password_key, uint32_t *length)
 {
     (void)dev; /* Unused */
-	TEE_Result		res;
-	uint8_t			secretData[HMAC_SHA256_KEY_SIZE_BYTE];
-	static uint8_t     keyData[HMAC_SHA256_KEY_SIZE_BYTE]; /* Static buffer to store the key data */
-	TEE_ObjectHandle	secretObj = TEE_HANDLE_NULL;
-	uint32_t		readSize = 0;
+    TEE_Result      res;
+    uint8_t         secretData[HMAC_SHA256_KEY_SIZE_BYTE];
+    static uint8_t     keyData[HMAC_SHA256_KEY_SIZE_BYTE]; /* Static buffer to store the key data */
+    TEE_ObjectHandle    secretObj = TEE_HANDLE_NULL;
+    uint32_t        readSize = 0;
 
-	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
-		sizeof(secret_ID), TEE_DATA_FLAG_ACCESS_READ, &secretObj);
-	if (res != TEE_SUCCESS) {
-		goto exit;
-	}
+    res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, secret_ID,
+        sizeof(secret_ID), TEE_DATA_FLAG_ACCESS_READ, &secretObj);
+    if (res != TEE_SUCCESS) {
+        goto exit;
+    }
 
-	res = TEE_ReadObjectData(secretObj, secretData, sizeof(secretData),
-				&readSize);
-	if (res != TEE_SUCCESS || sizeof(secretData) != readSize) {
-		goto close_obj;
-	}
+    res = TEE_ReadObjectData(secretObj, secretData, sizeof(secretData),
+                &readSize);
+    if (res != TEE_SUCCESS || sizeof(secretData) != readSize) {
+        goto close_obj;
+    }
 
-	/* Copy secret data to static buffer to return to caller */
-	memcpy(keyData, secretData, sizeof(secretData));
-	*password_key = keyData;
-	*length = HMAC_SHA256_KEY_SIZE_BYTE;
+    /* Copy secret data to static buffer to return to caller */
+    memcpy(keyData, secretData, sizeof(secretData));
+    *password_key = keyData;
+    *length = HMAC_SHA256_KEY_SIZE_BYTE;
 
 close_obj:
-	TEE_CloseObject(secretObj);
+    TEE_CloseObject(secretObj);
     memset(secretData, 0, sizeof(secretData));
 exit:
-	return;
+    return;
 }
 
 uint64_t GetTimestamp(gatekeeper_device_t * dev) {

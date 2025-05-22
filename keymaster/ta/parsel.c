@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,13 +28,13 @@ bool TA_is_out_of_bounds(uint8_t *ptr, uint8_t *end, size_t size)
 	if (end) {
 		if (ADD_OVERFLOW((uintptr_t)ptr, size, &res)) {
 			DMSG("ptr = 0x%" PRIXPTR ", end = 0x%" PRIXPTR ", size = %zu",
-			     (uintptr_t)ptr, (uintptr_t)end, size);
+				 (uintptr_t)ptr, (uintptr_t)end, size);
 			EMSG("Pointer overflow detected - Abort!");
 			return true;
 		}
 		if (res > (uintptr_t)end) {
 			DMSG("ptr = 0x%" PRIXPTR ", end = 0x%" PRIXPTR ", size = %zu",
-			     (uintptr_t)ptr, (uintptr_t)end, size);
+				 (uintptr_t)ptr, (uintptr_t)end, size);
 			EMSG("Pointer out of bounds!");
 			return true;
 		}
@@ -44,8 +44,8 @@ bool TA_is_out_of_bounds(uint8_t *ptr, uint8_t *end, size_t size)
 
 /* Deserializers */
 int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
-			     const bool check_presence, keymaster_error_t *res,
-			     bool allocate_memory)
+				 const bool check_presence, keymaster_error_t *res,
+				 bool allocate_memory)
 {
 	uint8_t *data;
 	const uint8_t *start = in;
@@ -73,7 +73,7 @@ int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
 	in += SIZE_LENGTH_AKMS;
 	if (TA_is_out_of_bounds(in, end, blob->data_length)) {
 		EMSG("Out of input array bounds on deserialization %lu",
-		     blob->data_length);
+			 blob->data_length);
 		*res = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 		return in - start;
 	}
@@ -101,8 +101,8 @@ int TA_deserialize_blob_akms(uint8_t *in, uint8_t *end, keymaster_blob_t *blob,
 }
 
 static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
-			      uint8_t *end, const uint8_t *indirect_base,
-			      const uint8_t *indirect_end)
+				  uint8_t *end, const uint8_t *indirect_base,
+				  const uint8_t *indirect_end)
 {
 	uint32_t offset;
 	uint8_t *data;
@@ -128,7 +128,7 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 			return false;
 		}
 		TEE_MemMove(&param->key_param.enumerated, *buf_ptr,
-			    sizeof(param->key_param.enumerated));
+				sizeof(param->key_param.enumerated));
 		*buf_ptr += sizeof(param->key_param.enumerated);
 		break;
 	case KM_UINT:
@@ -139,7 +139,7 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 			return false;
 		}
 		TEE_MemMove(&param->key_param.integer, *buf_ptr,
-			    sizeof(param->key_param.integer));
+				sizeof(param->key_param.integer));
 		*buf_ptr += sizeof(param->key_param.integer);
 		break;
 	case KM_ULONG:
@@ -150,7 +150,7 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 			return false;
 		}
 		TEE_MemMove(&param->key_param.long_integer, *buf_ptr,
-			    sizeof(param->key_param.long_integer));
+				sizeof(param->key_param.long_integer));
 		*buf_ptr += sizeof(param->key_param.long_integer);
 		break;
 	case KM_DATE:
@@ -160,7 +160,7 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 			return false;
 		}
 		TEE_MemMove(&param->key_param.date_time, *buf_ptr,
-			    sizeof(param->key_param.date_time));
+				sizeof(param->key_param.date_time));
 		*buf_ptr += sizeof(param->key_param.date_time);
 		break;
 	case KM_BOOL:
@@ -178,15 +178,15 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 			return false;
 		}
 		TEE_MemMove(&param->key_param.blob.data_length, *buf_ptr,
-			    sizeof(uint32_t));
+				sizeof(uint32_t));
 		*buf_ptr += sizeof(uint32_t);
 		TEE_MemMove(&offset, *buf_ptr, sizeof(offset));
 		*buf_ptr += sizeof(uint32_t);
 		if (((param->key_param.blob.data_length + offset) <
-		     param->key_param.blob.data_length) || /* Overflow check */
-		    (offset > (indirect_end - indirect_base)) ||
-		    ((offset + param->key_param.blob.data_length) >
-		     (unsigned long)(indirect_end - indirect_base))) {
+			 param->key_param.blob.data_length) || /* Overflow check */
+			(offset > (indirect_end - indirect_base)) ||
+			((offset + param->key_param.blob.data_length) >
+			 (unsigned long)(indirect_end - indirect_base))) {
 			DMSG("blob params deserialize err");
 			return false;
 		}
@@ -199,11 +199,11 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 				return false;
 			}
 			TEE_MemMove(data, indirect_base + offset,
-				    param->key_param.blob.data_length);
+					param->key_param.blob.data_length);
 			param->key_param.blob.data = data;
 			DMSG("type blob, blob_data:%p, blob len:%ld",
-			     param->key_param.blob.data,
-			     param->key_param.blob.data_length);
+				 param->key_param.blob.data,
+				 param->key_param.blob.data_length);
 		}
 		/* data_length(uint32_t) and offset(uint32_t) */
 		return true;
@@ -215,8 +215,8 @@ static bool param_deserialize(keymaster_key_param_t *param, uint8_t **buf_ptr,
 }
 
 int TA_deserialize_auth_set(uint8_t *in, uint8_t *end,
-			    keymaster_key_param_set_t *param_set,
-			    const bool check_presence, keymaster_error_t *res)
+				keymaster_key_param_set_t *param_set,
+				const bool check_presence, keymaster_error_t *res)
 {
 	const uint8_t *start = in;
 	presence p = KM_POPULATED;
@@ -291,8 +291,8 @@ int TA_deserialize_auth_set(uint8_t *in, uint8_t *end,
 	DMSG("param_set->length:%zu", param_set->length);
 	if (param_set->length > MAX_ENFORCED_PARAMS_COUNT) {
 		EMSG("Number of key params requested exceeded max allowed "
-		     " (%u)!",
-		     MAX_ENFORCED_PARAMS_COUNT);
+			 " (%u)!",
+			 MAX_ENFORCED_PARAMS_COUNT);
 		*res = KM_ERROR_INVALID_INPUT_LENGTH;
 		goto out;
 	}
@@ -327,7 +327,7 @@ out:
 }
 
 int TA_deserialize_param_set(uint8_t *in, uint8_t *end, keymaster_key_param_set_t *params,
-			     const bool check_presence, keymaster_error_t *res)
+				 const bool check_presence, keymaster_error_t *res)
 {
 	const uint8_t *start = in;
 	presence p = KM_POPULATED;
@@ -357,8 +357,8 @@ int TA_deserialize_param_set(uint8_t *in, uint8_t *end, keymaster_key_param_set_
 	DMSG("params->length:%zu", params->length);
 	if (params->length > MAX_ENFORCED_PARAMS_COUNT) {
 		EMSG("Number of key params requested exceeded max allowed "
-		     " (%u)!",
-		     MAX_ENFORCED_PARAMS_COUNT);
+			 " (%u)!",
+			 MAX_ENFORCED_PARAMS_COUNT);
 		*res = KM_ERROR_INVALID_INPUT_LENGTH;
 		return in - start;
 	}
@@ -388,10 +388,10 @@ int TA_deserialize_param_set(uint8_t *in, uint8_t *end, keymaster_key_param_set_
 		TEE_MemMove(params->params + i, in, SIZE_OF_ITEM(params->params));
 		in += SIZE_OF_ITEM(params->params);
 		if (keymaster_tag_get_type(params->params[i].tag) == KM_BIGNUM ||
-		    keymaster_tag_get_type(params->params[i].tag) == KM_BYTES) {
+			keymaster_tag_get_type(params->params[i].tag) == KM_BYTES) {
 			in += TA_deserialize_blob_akms(in, end,
-						       &(params->params[i].key_param.blob),
-						       false, res, true);
+							   &(params->params[i].key_param.blob),
+							   false, res, true);
 			if (*res != KM_ERROR_OK)
 				return in - start;
 		}
@@ -412,8 +412,8 @@ int TA_deserialize_key_blob_akms(uint8_t *in, uint8_t *end,
 	}
 	TEE_MemMove(&key_blob->key_material_size, in, SIZE_LENGTH_AKMS);
 	DMSG("key_blob->key_material_size = %zu "
-	     "sizeof(key_blob->key_material_size) = %zu",
-	     key_blob->key_material_size, SIZE_LENGTH_AKMS);
+		 "sizeof(key_blob->key_material_size) = %zu",
+		 key_blob->key_material_size, SIZE_LENGTH_AKMS);
 	in += SIZE_LENGTH_AKMS;
 	if (TA_is_out_of_bounds(in, end, key_blob->key_material_size)) {
 		EMSG("Out of input array bounds on deserialization");
@@ -433,8 +433,8 @@ int TA_deserialize_key_blob_akms(uint8_t *in, uint8_t *end,
 }
 
 int TA_deserialize_op_handle(uint8_t *in, uint8_t *in_end,
-			     keymaster_operation_handle_t *op_handle,
-			     keymaster_error_t *res)
+				 keymaster_operation_handle_t *op_handle,
+				 keymaster_error_t *res)
 {
 	DMSG("%s %d", __func__, __LINE__);
 	if (TA_is_out_of_bounds(in, in_end, sizeof(*op_handle))) {
@@ -460,7 +460,7 @@ int TA_deserialize_purpose(uint8_t *in, uint8_t *in_end, keymaster_purpose_t *pu
 }
 
 int TA_deserialize_key_format(uint8_t *in, uint8_t *in_end,
-			      keymaster_key_format_t *key_format, keymaster_error_t *res)
+				  keymaster_key_format_t *key_format, keymaster_error_t *res)
 {
 	DMSG("%s %d", __func__, __LINE__);
 	if (TA_is_out_of_bounds(in, in_end, sizeof(*key_format))) {
@@ -529,7 +529,7 @@ static uint8_t *param_serialize(const keymaster_key_param_t *param, uint8_t *buf
 			goto out;
 		}
 		TEE_MemMove(buf, &param->key_param.enumerated,
-			    sizeof(param->key_param.enumerated));
+				sizeof(param->key_param.enumerated));
 		buf += sizeof(param->key_param.enumerated);
 		break;
 	case KM_UINT:
@@ -540,7 +540,7 @@ static uint8_t *param_serialize(const keymaster_key_param_t *param, uint8_t *buf
 			goto out;
 		}
 		TEE_MemMove(buf, &param->key_param.integer,
-			    sizeof(param->key_param.integer));
+				sizeof(param->key_param.integer));
 		buf += sizeof(param->key_param.integer);
 		break;
 	case KM_ULONG:
@@ -552,7 +552,7 @@ static uint8_t *param_serialize(const keymaster_key_param_t *param, uint8_t *buf
 			goto out;
 		}
 		TEE_MemMove(buf, &param->key_param.long_integer,
-			    sizeof(param->key_param.long_integer));
+				sizeof(param->key_param.long_integer));
 		buf += sizeof(param->key_param.long_integer);
 		break;
 	case KM_DATE:
@@ -563,7 +563,7 @@ static uint8_t *param_serialize(const keymaster_key_param_t *param, uint8_t *buf
 			goto out;
 		}
 		TEE_MemMove(buf, &param->key_param.date_time,
-			    sizeof(param->key_param.date_time));
+				sizeof(param->key_param.date_time));
 		buf += sizeof(param->key_param.date_time);
 		break;
 	case KM_BOOL:
@@ -628,7 +628,7 @@ int TA_serialize_auth_set(uint8_t *out, uint8_t *out_end,
 	indirect_data = out;
 	for (size_t i = 0; i < param_set->length; i++) {
 		if (keymaster_tag_get_type(param_set->params->tag) == KM_BIGNUM ||
-		    keymaster_tag_get_type(param_set->params->tag) == KM_BYTES) {
+			keymaster_tag_get_type(param_set->params->tag) == KM_BYTES) {
 			if (TA_is_out_of_bounds(out, out_end,
 						param_set->params->key_param.blob.data_length)) {
 				EMSG("Exceeding end of output buffer");
@@ -636,7 +636,7 @@ int TA_serialize_auth_set(uint8_t *out, uint8_t *out_end,
 				goto exit;
 			}
 			TEE_MemMove(out, param_set->params->key_param.blob.data,
-				    param_set->params->key_param.blob.data_length);
+					param_set->params->key_param.blob.data_length);
 			/*
 			 * set blob data new address for calculate offset in
 			 * param_serialize
@@ -675,7 +675,7 @@ int TA_serialize_auth_set(uint8_t *out, uint8_t *out_end,
 	p_elems = out;
 	for (size_t i = 0; i < param_set->length; i++) {
 		out = param_serialize(param_set->params + i, out, out_end, oob,
-				      indirect_data, addr_indirect_data[i]);
+					  indirect_data, addr_indirect_data[i]);
 		if (*oob) {
 			EMSG("Exceeding end of output buffer");
 			goto exit;
@@ -710,8 +710,8 @@ exit:
 }
 
 int TA_serialize_characteristics_akms(uint8_t *out, uint8_t *out_end,
-				      const keymaster_key_characteristics_t *characteristics,
-				      bool *oob)
+					  const keymaster_key_characteristics_t *characteristics,
+					  bool *oob)
 {
 	uint8_t *start = out;
 
@@ -744,7 +744,7 @@ int TA_serialize_characteristics(uint8_t *out, uint8_t *out_end,
 		goto out;
 	}
 	TEE_MemMove(out, &characteristics->hw_enforced.length,
-		    sizeof(characteristics->hw_enforced.length));
+			sizeof(characteristics->hw_enforced.length));
 	out += SIZE_LENGTH;
 	for (size_t i = 0; i < characteristics->hw_enforced.length; i++) {
 		if (TA_is_out_of_bounds(out, out_end,
@@ -754,15 +754,15 @@ int TA_serialize_characteristics(uint8_t *out, uint8_t *out_end,
 			goto out;
 		}
 		TEE_MemMove(out, characteristics->hw_enforced.params + i,
-			    SIZE_OF_ITEM(characteristics->hw_enforced.params));
+				SIZE_OF_ITEM(characteristics->hw_enforced.params));
 		out += SIZE_OF_ITEM(characteristics->hw_enforced.params);
 		if (keymaster_tag_get_type(characteristics->hw_enforced.params[i].tag) ==
-			    KM_BIGNUM ||
-		    keymaster_tag_get_type(characteristics->hw_enforced.params[i].tag) ==
-			    KM_BYTES) {
+				KM_BIGNUM ||
+			keymaster_tag_get_type(characteristics->hw_enforced.params[i].tag) ==
+				KM_BYTES) {
 			out += TA_serialize_blob_akms(out, out_end,
-						      &(characteristics->hw_enforced.params[i].key_param.blob),
-						      oob);
+							  &(characteristics->hw_enforced.params[i].key_param.blob),
+							  oob);
 			if (*oob) {
 				EMSG("Out of output buffer space");
 				goto out;
@@ -777,7 +777,7 @@ int TA_serialize_characteristics(uint8_t *out, uint8_t *out_end,
 		goto out;
 	}
 	TEE_MemMove(out, &characteristics->sw_enforced.length,
-		    sizeof(characteristics->sw_enforced.length));
+			sizeof(characteristics->sw_enforced.length));
 	out += SIZE_LENGTH;
 	for (size_t i = 0; i < characteristics->sw_enforced.length; i++) {
 		if (TA_is_out_of_bounds(out, out_end,
@@ -787,15 +787,15 @@ int TA_serialize_characteristics(uint8_t *out, uint8_t *out_end,
 			goto out;
 		}
 		TEE_MemMove(out, characteristics->sw_enforced.params + i,
-			    SIZE_OF_ITEM(characteristics->sw_enforced.params));
+				SIZE_OF_ITEM(characteristics->sw_enforced.params));
 		out += SIZE_OF_ITEM(characteristics->sw_enforced.params);
 		if (keymaster_tag_get_type(characteristics->sw_enforced.params[i].tag) ==
-			    KM_BIGNUM ||
-		    keymaster_tag_get_type(characteristics->sw_enforced.params[i].tag) ==
-			    KM_BYTES) {
+				KM_BIGNUM ||
+			keymaster_tag_get_type(characteristics->sw_enforced.params[i].tag) ==
+				KM_BYTES) {
 			out += TA_serialize_blob_akms(out, out_end,
-						      &((characteristics->sw_enforced.params + i)->key_param.blob),
-						      oob);
+							  &((characteristics->sw_enforced.params + i)->key_param.blob),
+							  oob);
 			if (*oob) {
 				EMSG("Out of output buffer space");
 				goto out;
@@ -808,7 +808,7 @@ out:
 }
 
 int TA_serialize_key_blob_akms(uint8_t *out, uint8_t *out_end,
-			       const keymaster_key_blob_t *key_blob, bool *oob)
+				   const keymaster_key_blob_t *key_blob, bool *oob)
 {
 	DMSG("%s %d", __func__, __LINE__);
 	if (TA_is_out_of_bounds(out, out_end, KEY_BLOB_SIZE_AKMS(key_blob))) {
@@ -863,7 +863,7 @@ int TA_serialize_cert_chain_akms(uint8_t *out, uint8_t *out_end,
 			goto out;
 		}
 		TEE_MemMove(out, cert_chain->entries[i].data,
-			    cert_chain->entries[i].data_length);
+				cert_chain->entries[i].data_length);
 		out += cert_chain->entries[i].data_length;
 	}
 	*res = KM_ERROR_OK;
@@ -896,10 +896,10 @@ int TA_serialize_param_set(uint8_t *out, uint8_t *out_end,
 		out += SIZE_OF_ITEM(params->params);
 
 		if (keymaster_tag_get_type(params->params[i].tag) == KM_BIGNUM ||
-		    keymaster_tag_get_type(params->params[i].tag) == KM_BYTES) {
+			keymaster_tag_get_type(params->params[i].tag) == KM_BYTES) {
 			out += TA_serialize_blob_akms(out, out_end,
-						      &(params->params[i].key_param.blob),
-						      oob);
+							  &(params->params[i].key_param.blob),
+							  oob);
 			if (*oob) {
 				EMSG("Out of output buffer space");
 				goto out;
@@ -913,7 +913,7 @@ out:
 
 /* Serialize root RSA key-pair (public and private parts) */
 TEE_Result TA_serialize_rsa_keypair(uint8_t *out, uint8_t *out_end, uint32_t *out_size,
-				    const TEE_ObjectHandle key_obj, bool *oob)
+					const TEE_ObjectHandle key_obj, bool *oob)
 {
 	TEE_Result res = TEE_SUCCESS;
 	uint32_t readSize = 0;

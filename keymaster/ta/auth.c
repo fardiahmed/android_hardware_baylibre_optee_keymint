@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,8 +37,8 @@ TEE_Result TA_InitializeAuthTokenKey(void)
 	DMSG("Checking auth_token key secret");
 
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, auth_token_key_id,
-				       sizeof(auth_token_key_id),
-				       TEE_DATA_FLAG_ACCESS_READ, &auth_token_key_obj);
+					   sizeof(auth_token_key_id),
+					   TEE_DATA_FLAG_ACCESS_READ, &auth_token_key_obj);
 
 	switch (res) {
 	case TEE_ERROR_ITEM_NOT_FOUND:
@@ -117,9 +117,9 @@ static TEE_Result TA_ReadAuthTokenKey(uint8_t *key, uint32_t key_size)
 	uint32_t read_size = 0;
 
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
-				       auth_token_key_id, sizeof(auth_token_key_id),
-				       TEE_DATA_FLAG_ACCESS_READ | TEE_DATA_FLAG_SHARE_READ,
-				       &auth_token_key_obj);
+					   auth_token_key_id, sizeof(auth_token_key_id),
+					   TEE_DATA_FLAG_ACCESS_READ | TEE_DATA_FLAG_SHARE_READ,
+					   &auth_token_key_obj);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to open auth_token key secret, res=%x", res);
 		goto exit;
@@ -179,7 +179,7 @@ exit:
  * requirements. After that, it checks hw_auth_token signature.
  */
 keymaster_error_t TA_do_auth(const keymaster_key_param_set_t in_params,
-			     const keymaster_key_param_set_t key_params)
+				 const keymaster_key_param_set_t key_params)
 {
 	uint64_t suid[MAX_SUID];
 	uint32_t suid_count = 0;
@@ -208,7 +208,7 @@ keymaster_error_t TA_do_auth(const keymaster_key_param_set_t in_params,
 			break;
 		case KM_TAG_USER_AUTH_TYPE:
 			auth_type = (hw_authenticator_type_t)key_params.params[i]
-					    .key_param.enumerated;
+						.key_param.enumerated;
 			break;
 		default:
 			break;
@@ -218,11 +218,11 @@ keymaster_error_t TA_do_auth(const keymaster_key_param_set_t in_params,
 	for (size_t i = 0; i < in_params.length; i++) {
 		if (in_params.params[i].tag == KM_TAG_AUTH_TOKEN) {
 			if (in_params.params[i].key_param.blob.data_length ==
-			    sizeof(auth_token)) {
+				sizeof(auth_token)) {
 				found_token = true;
 				TEE_MemMove(&auth_token,
-					    in_params.params[i].key_param.blob.data,
-					    sizeof(auth_token));
+						in_params.params[i].key_param.blob.data,
+						sizeof(auth_token));
 			}
 		}
 	}
@@ -248,8 +248,8 @@ exit:
  * @return TEE_SUCCESS on success
  */
 static TEE_Result TA_ComputeSignature(uint8_t *signature, size_t signature_length,
-				      TEE_ObjectHandle key, const uint8_t *message,
-				      size_t length)
+					  TEE_ObjectHandle key, const uint8_t *message,
+					  size_t length)
 {
 	uint32_t buf_length = HMAC_SHA256_KEY_SIZE_BYTE;
 	uint8_t buf[buf_length];
@@ -258,7 +258,7 @@ static TEE_Result TA_ComputeSignature(uint8_t *signature, size_t signature_lengt
 	uint32_t to_write;
 
 	res = TEE_AllocateOperation(&op, TEE_ALG_HMAC_SHA256, TEE_MODE_MAC,
-				    HMAC_SHA256_KEY_SIZE_BIT);
+					HMAC_SHA256_KEY_SIZE_BIT);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to allocate HMAC operation, res=%x", res);
 		goto exit;
@@ -312,7 +312,7 @@ static TEE_Result TA_GetAuthKeyObj(TEE_ObjectHandle auth_token_key_obj)
 	}
 
 	TEE_InitRefAttribute(&attrs[0], TEE_ATTR_SECRET_VALUE, auth_token_key,
-			     sizeof(auth_token_key));
+				 sizeof(auth_token_key));
 
 	res = TEE_PopulateTransientObject(auth_token_key_obj, attrs,
 					  sizeof(attrs) / sizeof(attrs[0]));
@@ -331,7 +331,7 @@ exit:
  * @return TEE_SUCCESS on success
  */
 TEE_Result TA_computeTokenHmac(const hw_auth_token_t *auth_token, uint8_t *hmac,
-			       uint32_t hmac_length)
+				   uint32_t hmac_length)
 {
 	TEE_ObjectHandle auth_token_key_obj = TEE_HANDLE_NULL;
 	TEE_Result res = TEE_SUCCESS;
@@ -398,8 +398,8 @@ static TEE_Result TA_ValidateTokenSignature(const hw_auth_token_t *token)
  * if any of requirements are not met
 */
 keymaster_error_t TA_check_auth_token(const uint64_t *suid, const uint32_t suid_count,
-				      const hw_authenticator_type_t auth_type,
-				      const hw_auth_token_t *auth_token)
+					  const hw_authenticator_type_t auth_type,
+					  const hw_auth_token_t *auth_token)
 {
 	TEE_Result res;
 	bool in_list = false;
@@ -419,14 +419,14 @@ keymaster_error_t TA_check_auth_token(const uint64_t *suid, const uint32_t suid_
 		return KM_ERROR_KEY_USER_NOT_AUTHENTICATED;
 	}
 	if ((TEE_U32_FROM_BIG_ENDIAN(auth_token->authenticator_type) &
-	     (uint32_t)auth_type) == 0) {
+		 (uint32_t)auth_type) == 0) {
 		EMSG("Authentication type not passed");
 		return KM_ERROR_KEY_USER_NOT_AUTHENTICATED;
 	}
 
 	if (auth_token->version != HW_AUTH_TOKEN_VERSION) {
 		EMSG("auth_token has %u version, expected %u", auth_token->version,
-		     HW_AUTH_TOKEN_VERSION);
+			 HW_AUTH_TOKEN_VERSION);
 		return KM_ERROR_KEY_USER_NOT_AUTHENTICATED;
 	}
 

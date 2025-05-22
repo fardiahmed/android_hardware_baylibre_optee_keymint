@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,14 +32,14 @@ TEE_Result TA_InitializeAuthTokenKey(void);
 keymaster_error_t TA_GetAuthTokenKey(TEE_Param params[TEE_NUM_PARAMS]);
 
 TEE_Result TA_computeTokenHmac(const hw_auth_token_t *auth_token, uint8_t *hmac,
-			       uint32_t hmac_length);
+				   uint32_t hmac_length);
 
 keymaster_error_t TA_check_auth_token(const uint64_t *suid, const uint32_t suid_count,
-				      const hw_authenticator_type_t auth_type,
-				      const hw_auth_token_t *auth_token);
+					  const hw_authenticator_type_t auth_type,
+					  const hw_auth_token_t *auth_token);
 
 keymaster_error_t TA_do_auth(const keymaster_key_param_set_t in_params,
-			     const keymaster_key_param_set_t key_params);
+				 const keymaster_key_param_set_t key_params);
 
 #define HMAC_SHA256_KEY_SIZE_BYTE 32
 #define HMAC_SHA256_KEY_SIZE_BIT (8 * HMAC_SHA256_KEY_SIZE_BYTE)

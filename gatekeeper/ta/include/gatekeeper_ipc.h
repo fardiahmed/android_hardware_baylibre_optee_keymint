@@ -26,7 +26,7 @@
  * in Android.mk file
  */
 #define TA_GATEKEEPER_UUID { 0x4d573443, 0x6a56, 0x4272, \
-		{ 0xac, 0x6f, 0x24, 0x25, 0xaf, 0x9e, 0xf9, 0xbb} }
+        { 0xac, 0x6f, 0x24, 0x25, 0xaf, 0x9e, 0xf9, 0xbb} }
 
 /*
  * GateKeeper message size
@@ -40,7 +40,7 @@ constexpr const uint32_t RECV_BUF_SIZE = 8192;
 #define RECV_BUF_SIZE 8192
 #endif
 #define GATEKEEPER_MAX_BUFFER_LENGTH (RECV_BUF_SIZE-sizeof(uint32_t))
-		
+        
 struct gatekeeper_message {
     uint32_t cmd;
     uint8_t payload[0];

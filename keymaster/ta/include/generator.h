@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -75,18 +75,18 @@ keymaster_error_t TA_restore_key(uint8_t *key_material,
 
 /* Operations handling */
 keymaster_error_t TA_create_operation(TEE_OperationHandle *operation,
-				      const TEE_ObjectHandle obj_h,
-				      const keymaster_purpose_t purpose,
-				      const keymaster_algorithm_t algorithm,
-				      const uint32_t key_size,
-				      const keymaster_blob_t nonce,
-				      const keymaster_digest_t digest,
-				      const keymaster_block_mode_t mode,
-				      const keymaster_padding_t padding,
-				      const uint32_t mac_length);
+					  const TEE_ObjectHandle obj_h,
+					  const keymaster_purpose_t purpose,
+					  const keymaster_algorithm_t algorithm,
+					  const uint32_t key_size,
+					  const keymaster_blob_t nonce,
+					  const keymaster_digest_t digest,
+					  const keymaster_block_mode_t mode,
+					  const keymaster_padding_t padding,
+					  const uint32_t mac_length);
 
 keymaster_error_t TA_create_digest_op(TEE_OperationHandle *digest_op,
-				      const keymaster_digest_t digest);
+					  const keymaster_digest_t digest);
 
 keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data, uint32_t *key_size,
 					 const keymaster_digest_t digest);
@@ -94,16 +94,16 @@ keymaster_error_t TA_check_hmac_key_size(keymaster_blob_t *key_data, uint32_t *k
 keymaster_error_t TA_populate_key_attrs(uint8_t *key_material, tee_key_attributes *att);
 
 keymaster_error_t TA_key_from_attrs(TEE_ObjectHandle *obj_h,
-				    const tee_key_attributes *attrs);
+					const tee_key_attributes *attrs);
 
 keymaster_error_t TA_persistent_obj_from_attrs(TEE_ObjectHandle *obj_h,
-					       TEE_Attribute *attrs, uint32_t attrs_count,
-					       const uint8_t *id, uint32_t id_len);
+						   TEE_Attribute *attrs, uint32_t attrs_count,
+						   const uint8_t *id, uint32_t id_len);
 
 keymaster_error_t TA_check_hmac_key(const uint32_t type, uint32_t *key_size);
 
 TEE_Result TA_write_obj_attr(TEE_ObjectHandle attObj, const uint8_t *buffer,
-			     const uint32_t buffSize);
+				 const uint32_t buffSize);
 
 bool is_attr_value(const uint32_t tag);
 

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -156,8 +156,8 @@ void TA_DestroyEntryPoint(void)
 }
 
 TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
-				    TEE_Param params[TEE_NUM_PARAMS] __unused,
-				    void **sess_ctx __unused)
+					TEE_Param params[TEE_NUM_PARAMS] __unused,
+					void **sess_ctx __unused)
 {
 	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE,
@@ -257,7 +257,7 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 	TEE_MemMove(out, hmac_saved_parameters->nonce, sizeof(hmac_saved_parameters->nonce));
 	out += sizeof(hmac_saved_parameters->nonce);
 
-        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+		params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	return KM_ERROR_OK;
 }
@@ -320,7 +320,7 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 	
 	/* Allocate memory for local copy of parameters */
 	local_params = TEE_Malloc(param_count * sizeof(hmac_sharing_parameters_t), 
-	                         TEE_MALLOC_FILL_ZERO);
+							 TEE_MALLOC_FILL_ZERO);
 	if (!local_params) {
 		EMSG("[DEBUG] %s: Failed to allocate memory for parameters", __func__);
 		return KM_ERROR_MEMORY_ALLOCATION_FAILED;
@@ -341,7 +341,7 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 		/* Validate seed length */
 		if (seed.data_length != 0 && seed.data_length != 32) {
 			EMSG("[DEBUG] %s: Invalid seed length %zu for parameter %zu", 
-			     __func__, seed.data_length, i);
+				 __func__, seed.data_length, i);
 			error = KM_ERROR_INVALID_ARGUMENT;
 			goto exit;
 		}
@@ -363,9 +363,9 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 		TEE_MemMove(local_params[i].nonce, nonce, 32);
 		
 		DMSG("[DEBUG] %s: Parameter %zu: seed length %zu, nonce[0]=%02x%02x%02x%02x...",
-		     __func__, i, seed.data_length, 
-		     local_params[i].nonce[0], local_params[i].nonce[1],
-		     local_params[i].nonce[2], local_params[i].nonce[3]);
+			 __func__, i, seed.data_length, 
+			 local_params[i].nonce[0], local_params[i].nonce[1],
+			 local_params[i].nonce[2], local_params[i].nonce[3]);
 		
 		/* Check if this parameter matches our own saved parameters */
 		if (memcmp(local_params[i].nonce, hmac_saved_parameters->nonce, 32) == 0) {
@@ -374,9 +374,9 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 			
 			/* If own seed is corrupted, fail the operation */
 			if ((hmac_saved_parameters->seed.data_length != local_params[i].seed.data_length) ||
-			    (hmac_saved_parameters->seed.data_length > 0 && 
-			     memcmp(hmac_saved_parameters->seed.data, local_params[i].seed.data, 
-			           hmac_saved_parameters->seed.data_length) != 0)) {
+				(hmac_saved_parameters->seed.data_length > 0 && 
+				 memcmp(hmac_saved_parameters->seed.data, local_params[i].seed.data, 
+					   hmac_saved_parameters->seed.data_length) != 0)) {
 				EMSG("[DEBUG] %s: Our own seed has been modified!", __func__);
 				error = KM_ERROR_INVALID_ARGUMENT;
 				goto exit;
@@ -431,10 +431,10 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 		/* Concatenate seed (if present) */
 		if (local_params[i].seed.data_length > 0) {
 			TEE_MemMove(buffer + buffer_offset, local_params[i].seed.data, 
-			            local_params[i].seed.data_length);
+						local_params[i].seed.data_length);
 			buffer_offset += local_params[i].seed.data_length;
 			DMSG("[DEBUG] %s: Added seed for param %zu, buffer_offset now %zu", 
-			     __func__, i, buffer_offset);
+				 __func__, i, buffer_offset);
 		}
 		
 		/* Concatenate nonce */
@@ -442,7 +442,7 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 		buffer_offset += 32;
 		
 		DMSG("[DEBUG] %s: Added nonce for param %zu, buffer_offset now %zu", 
-		     __func__, i, buffer_offset);
+			 __func__, i, buffer_offset);
 	}
 	
 	/* Create HMAC-SHA256 operation */
@@ -514,8 +514,8 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	
 	DMSG("[DEBUG] %s: HMAC computed successfully, result[0]=%02x%02x%02x%02x...",
-	     __func__, hmac_result->data[0], hmac_result->data[1], 
-	     hmac_result->data[2], hmac_result->data[3]);
+		 __func__, hmac_result->data[0], hmac_result->data[1], 
+		 hmac_result->data[2], hmac_result->data[3]);
 	
 	/* Serialize the result */
 	out += TA_serialize_blob_akms(out, out_end, hmac_result, &oob);
@@ -656,7 +656,7 @@ static keymaster_error_t TA_verifyAuthorization(TEE_Param params[TEE_NUM_PARAMS]
 free_hmac_data:
 	free(hmac.data);
 exit:
-        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+		params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	return error;
 }
@@ -693,10 +693,10 @@ static keymaster_error_t TA_configure(TEE_Param params[TEE_NUM_PARAMS])
 		 * updates can be done, to avoid breaking Project Treble.
 		 */
 		memcpy(&optee_km_context.os_version, in,
-		       sizeof(optee_km_context.os_version));
+			   sizeof(optee_km_context.os_version));
 		in += 4;
 		memcpy(&optee_km_context.os_patchlevel, in,
-		       sizeof(optee_km_context.os_patchlevel));
+			   sizeof(optee_km_context.os_patchlevel));
 		in += 4;
 		optee_km_context.version_info_set = true;
 	}
@@ -717,7 +717,7 @@ static keymaster_error_t TA_getVersion(TEE_Param params[TEE_NUM_PARAMS])
 	out += sizeof(keymaster_error_t);
 
 	/* current version 4.1 */
-        keymaster_version_t version = { 4, 1, 0 };
+		keymaster_version_t version = { 4, 1, 0 };
 	TEE_MemMove(out, &version, sizeof(keymaster_version_t));
 	out += sizeof(keymaster_version_t);
 
@@ -735,12 +735,12 @@ static keymaster_error_t TA_getVersion2(TEE_Param params[TEE_NUM_PARAMS])
 	out = (uint8_t *)params[1].memref.buffer;
 	out += sizeof(keymaster_error_t);
 
-        /* current version Keymint 3 */
-        keymaster_version2_t version2 = { 3, KEYMINT_3, 0 };
-        TEE_MemMove(out, &version2, sizeof(keymaster_version2_t));
+		/* current version Keymint 3 */
+		keymaster_version2_t version2 = { 3, KEYMINT_3, 0 };
+		TEE_MemMove(out, &version2, sizeof(keymaster_version2_t));
 	out += sizeof(keymaster_version2_t);
 
-        params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+		params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	return KM_ERROR_OK;
 }
@@ -887,7 +887,7 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 		TA_add_ec_curve(&params_t, key_size);
 	}
 	DMSG("key_algorithm=%d key_rsa_public_exponent=%lu", key_algorithm,
-	     key_rsa_public_exponent);
+		 key_rsa_public_exponent);
 	/*
 	 * Newly-generated key's characteristics divided appropriately
 	 * into hardware-enforced and software-enforced lists
@@ -915,8 +915,8 @@ static keymaster_error_t TA_generateKey(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 	TA_serialize_param_set(key_material + key_buffer_size,
-			       key_material + key_blob.key_material_size, &params_t,
-			       &oob);
+				   key_material + key_blob.key_material_size, &params_t,
+				   &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
 		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
@@ -1009,7 +1009,7 @@ static keymaster_error_t TA_getKeyCharacteristics(TEE_Param params[TEE_NUM_PARAM
 		goto exit;
 	}
 	error = TA_restore_key(key_material, &key_blob, &key_size, &type, &obj_h,
-			       &params_t);
+				   &params_t);
 	if (error != KM_ERROR_OK)
 		goto exit;
 
@@ -1110,9 +1110,9 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 		goto out;
 	if (key_format == KM_KEY_FORMAT_RAW) {
 		if (key_algorithm != KM_ALGORITHM_AES &&
-		    key_algorithm != KM_ALGORITHM_HMAC) {
+			key_algorithm != KM_ALGORITHM_HMAC) {
 			EMSG("Only HMAC and AES keys can imported in raw "
-			     "format");
+				 "format");
 			error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 			/* goto out; */
 		}
@@ -1126,18 +1126,18 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 			}
 		}
 		if (key_algorithm == KM_ALGORITHM_HMAC &&
-		    (key_size % 8 != 0 || key_size > MAX_KEY_HMAC ||
-		     key_size < MIN_KEY_HMAC)) {
+			(key_size % 8 != 0 || key_size > MAX_KEY_HMAC ||
+			 key_size < MIN_KEY_HMAC)) {
 			EMSG("HMAC key size must be multiple of 8 in range "
-			     "from %d to %d",
-			     MIN_KEY_HMAC, MAX_KEY_HMAC);
+				 "from %d to %d",
+				 MIN_KEY_HMAC, MAX_KEY_HMAC);
 			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		} else if (key_algorithm == KM_ALGORITHM_AES && key_size != 128 &&
 			   key_size != 192 && key_size != 256) {
 			EMSG("Unsupported key size %d ! Supported only 128, "
-			     "192 and 256",
-			     key_size);
+				 "192 and 256",
+				 key_size);
 			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		}
@@ -1151,35 +1151,35 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 		attrs_in_count = 1;
 
 		TEE_InitRefAttribute(attrs_in, TEE_ATTR_SECRET_VALUE,
-				     (void *)key_data.data, key_data.data_length);
+					 (void *)key_data.data, key_data.data_length);
 	} else { /* KM_KEY_FORMAT_PKCS8 */
 		if (key_algorithm != KM_ALGORITHM_RSA &&
-		    key_algorithm != KM_ALGORITHM_EC) {
+			key_algorithm != KM_ALGORITHM_EC) {
 			EMSG("Only RSA and EC keys can be imported in PKCS8 "
-			     "format");
+				 "format");
 			error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 			/* goto out; */
 		}
 
 		error = mbedTLS_decode_pkcs8(key_data, &attrs_in, &attrs_in_count,
-					     key_algorithm, &key_size,
-					     &key_rsa_public_exponent);
+						 key_algorithm, &key_size,
+						 &key_rsa_public_exponent);
 
 		if (error != KM_ERROR_OK)
 			goto out;
 		if (key_algorithm == KM_ALGORITHM_RSA &&
-		    (key_size % 8 != 0 || key_size > MAX_KEY_RSA)) {
+			(key_size % 8 != 0 || key_size > MAX_KEY_RSA)) {
 			EMSG("RSA key size must be multiple of 8 and less than"
-			     " %u",
-			     MAX_KEY_RSA);
+				 " %u",
+				 MAX_KEY_RSA);
 			error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 			goto out;
 		}
 		if (key_algorithm == KM_ALGORITHM_RSA) {
 			if (key_size > MAX_KEY_RSA) {
 				EMSG("RSA key size must be multiple of 8 and "
-				     "less than %u",
-				     MAX_KEY_RSA);
+					 "less than %u",
+					 MAX_KEY_RSA);
 				error = KM_ERROR_UNSUPPORTED_KEY_SIZE;
 				goto out;
 			}
@@ -1199,14 +1199,14 @@ static keymaster_error_t TA_importKey(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 	error = TA_import_key(key_algorithm, key_size, key_material, key_digest, attrs_in,
-			      attrs_in_count);
+				  attrs_in_count);
 	if (error != KM_ERROR_OK) {
 		EMSG("Failed to import key");
 		goto out;
 	}
 	TA_serialize_param_set(key_material + key_buffer_size,
-			       key_material + key_blob.key_material_size, &params_t,
-			       &oob);
+				   key_material + key_blob.key_material_size, &params_t,
+				   &oob);
 	if (oob) {
 		EMSG("Out of output buffer space");
 		error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
@@ -1240,7 +1240,7 @@ exit:
 	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
 
 	if ((key_data.data && key_format != KM_KEY_FORMAT_RAW) ||
-	    (key_data.data && key_format == KM_KEY_FORMAT_RAW && error != KM_ERROR_OK)) {
+		(key_data.data && key_format == KM_KEY_FORMAT_RAW && error != KM_ERROR_OK)) {
 		TEE_Free(key_data.data);
 	}
 
@@ -1308,18 +1308,18 @@ static keymaster_error_t TA_exportKey(TEE_Param params[TEE_NUM_PARAMS])
 		goto out;
 	}
 	error = TA_restore_key(key_material, &key_to_export, &key_size, &type, &obj_h,
-			       &params_t);
+				   &params_t);
 	if (error != KM_ERROR_OK)
 		goto out;
 	error = TA_check_permission(&params_t,
-				    /* client id */
-				    in_params.params[0].key_param.blob,
-				    /* app_data */
-				    in_params.params[1].key_param.blob, &exportable);
+					/* client id */
+					in_params.params[0].key_param.blob,
+					/* app_data */
+					in_params.params[1].key_param.blob, &exportable);
 	if (error != KM_ERROR_OK)
 		goto out;
 	if (!exportable && type != TEE_TYPE_RSA_KEYPAIR &&
-	    type != TEE_TYPE_ECDSA_KEYPAIR) {
+		type != TEE_TYPE_ECDSA_KEYPAIR) {
 		error = KM_ERROR_UNSUPPORTED_KEY_FORMAT;
 		EMSG("This key type is not exportable");
 		goto out;
@@ -1463,7 +1463,7 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 			break;
 		default:
 			DMSG("Unused attestation parameter tag %x",
-			     attest_params.params[i].tag);
+				 attest_params.params[i].tag);
 			break;
 		}
 	}
@@ -1482,7 +1482,7 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 
 	/* Restore key */
 	error = TA_restore_key(key_material, &key_to_attest, &key_size, &key_type,
-			       &attestedKey, &params_t);
+				   &attestedKey, &params_t);
 	if (error != KM_ERROR_OK)
 		goto exit;
 
@@ -1495,8 +1495,8 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	/* Check attested key type */
 	if (key_type != TEE_TYPE_RSA_KEYPAIR && key_type != TEE_TYPE_ECDSA_KEYPAIR) {
 		EMSG("Key attestation supports only asymmetric key pairs, "
-		     "type=%x",
-		     key_type);
+			 "type=%x",
+			 key_type);
 		error = KM_ERROR_INCOMPATIBLE_ALGORITHM;
 		goto exit;
 	}
@@ -1540,8 +1540,8 @@ static keymaster_error_t TA_attestKey(TEE_Param params[TEE_NUM_PARAMS])
 	}
 	/* Generate key attestation certificate (using STA ASN.1) */
 	res = TA_gen_key_attest_cert(key_type, attestedKey, &attest_params, &key_chr,
-				     &cert_chain, verified_boot_state,
-				     includeUniqueID);
+					 &cert_chain, verified_boot_state,
+					 includeUniqueID);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to gen key att cert, res=%x", res);
 		error = KM_ERROR_UNKNOWN_ERROR;
@@ -1559,7 +1559,7 @@ exit:
 	/* Serialize output chain of certificates */
 	if (error == KM_ERROR_OK) {
 		out += TA_serialize_cert_chain_akms(out, out_end, &cert_chain, &error,
-						    &oob);
+							&oob);
 		if (oob) {
 			EMSG("Out of output buffer space");
 			error = KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
@@ -1738,7 +1738,7 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	if (error != KM_ERROR_OK)
 		goto out;
 	if (algorithm == KM_ALGORITHM_AES && mode != KM_MODE_ECB &&
-	    nonce.data_length == 0) {
+		nonce.data_length == 0) {
 		if (mode == KM_MODE_CBC || mode == KM_MODE_CTR) {
 			IVsize = 16;
 		} else { /* GCM mode */
@@ -1768,13 +1768,13 @@ static keymaster_error_t TA_begin(TEE_Param params[TEE_NUM_PARAMS])
 	}
 
 	error = TA_create_operation(operation, obj_h, purpose, algorithm, key_size, nonce,
-				    digest, mode, padding, mac_length);
+					digest, mode, padding, mac_length);
 	if (error != KM_ERROR_OK)
 		goto out;
 
 	TEE_GenerateRandom(&operation_handle, sizeof(operation_handle));
 	if (purpose == KM_PURPOSE_SIGN || purpose == KM_PURPOSE_VERIFY ||
-	    (algorithm == KM_ALGORITHM_RSA && padding == KM_PAD_RSA_PSS)) {
+		(algorithm == KM_ALGORITHM_RSA && padding == KM_PAD_RSA_PSS)) {
 		error = TA_create_digest_op(digest_op, digest);
 		if (error != KM_ERROR_OK)
 			goto out;
@@ -1867,7 +1867,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	/* don't allocate memory, reference to in */
 	input_allocate_memory = false;
 	in += TA_deserialize_blob_akms(in, in_end, &input, false, &error,
-				       input_allocate_memory);
+					   input_allocate_memory);
 	if (error != KM_ERROR_OK)
 		goto out;
 
@@ -1881,7 +1881,7 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 		goto out;
 	key_material = TEE_Malloc(operation->key->key_material_size, TEE_MALLOC_FILL_ZERO);
 	error = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
-			       &params_t);
+				   &params_t);
 	if (error != KM_ERROR_OK)
 		goto out;
 	if (operation->do_auth) {
@@ -1904,15 +1904,15 @@ static keymaster_error_t TA_update(TEE_Param params[TEE_NUM_PARAMS])
 	switch (type) {
 	case TEE_TYPE_AES:
 		error = TA_aes_update(operation, &input, &output, &keyblob_out_size,
-				      input_provided, &input_consumed, &in_params);
+					  input_provided, &input_consumed, &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
 		error = TA_rsa_update(operation, &input, &output, &keyblob_out_size,
-				      key_size, &input_consumed, input_provided, obj_h);
+					  key_size, &input_consumed, input_provided, obj_h);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
 		error = TA_ec_update(operation, &input, &output, &input_consumed,
-				     input_provided);
+					 input_provided);
 		break;
 	default: /* HMAC */
 		TEE_MACUpdate(*operation->operation, input.data, input.data_length);
@@ -2018,7 +2018,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	/* don't allocate memory, reference to in */
 	input_allocate_memory = false;
 	in += TA_deserialize_blob_akms(in, in_end, &input, false, &error,
-				       input_allocate_memory);
+					   input_allocate_memory);
 	if (error != KM_ERROR_OK)
 		goto out;
 
@@ -2028,7 +2028,7 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	key_material = TEE_Malloc(operation->key->key_material_size,
 				  TEE_MALLOC_FILL_ZERO);
 	error = TA_restore_key(key_material, operation->key, &key_size, &type, &obj_h,
-			       &params_t);
+				   &params_t);
 	if (error != KM_ERROR_OK)
 		goto out;
 	if (operation->do_auth) {
@@ -2051,26 +2051,26 @@ static keymaster_error_t TA_finish(TEE_Param params[TEE_NUM_PARAMS])
 	switch (type) {
 	case TEE_TYPE_AES:
 		error = TA_aes_finish(operation, &input, &output, &keyblob_out_size,
-				      tag_len, &in_params);
+					  tag_len, &in_params);
 		break;
 	case TEE_TYPE_RSA_KEYPAIR:
 		error = TA_rsa_finish(operation, &input, &output, &keyblob_out_size,
-				      key_size, signature, obj_h, &input_allocate_memory);
+					  key_size, signature, obj_h, &input_allocate_memory);
 		break;
 	case TEE_TYPE_ECDSA_KEYPAIR:
 		error = TA_ec_finish(operation, &input, &output, &signature,
-				     &keyblob_out_size, key_size, &input_allocate_memory);
+					 &keyblob_out_size, key_size, &input_allocate_memory);
 		break;
 	default: /* HMAC */
 		if (operation->purpose == KM_PURPOSE_SIGN) {
 			TEE_MACComputeFinal(*operation->operation, input.data,
-					    input.data_length, output.data,
-					    &keyblob_out_size);
+						input.data_length, output.data,
+						&keyblob_out_size);
 			/* Trim out size to KM_TAG_MAC_LENGTH */
 			if (operation->mac_length != UNDEFINED) {
 				if (keyblob_out_size > operation->mac_length / 8) {
 					DMSG("Trim HMAC out size to %d",
-					     operation->mac_length);
+						 operation->mac_length);
 					keyblob_out_size = operation->mac_length / 8;
 				}
 			}
@@ -2153,8 +2153,8 @@ out:
 }
 
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
-				      uint32_t param_types,
-				      TEE_Param params[TEE_NUM_PARAMS])
+					  uint32_t param_types,
+					  TEE_Param params[TEE_NUM_PARAMS])
 {
 	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
 						   TEE_PARAM_TYPE_MEMREF_OUTPUT,

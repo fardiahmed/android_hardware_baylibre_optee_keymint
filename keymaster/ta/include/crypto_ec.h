@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,12 +29,12 @@
 #include "mbedtls_proxy.h"
 
 keymaster_error_t TA_ec_update(keymaster_operation_t *operation,
-			       const keymaster_blob_t *input, keymaster_blob_t *output,
-			       size_t *input_consumed, const uint32_t input_provided);
+				   const keymaster_blob_t *input, keymaster_blob_t *output,
+				   size_t *input_consumed, const uint32_t input_provided);
 
 keymaster_error_t TA_ec_finish(const keymaster_operation_t *operation,
-			       keymaster_blob_t *input, keymaster_blob_t *output,
-			       keymaster_blob_t *signature, uint32_t *out_size,
-			       const uint32_t key_size, bool *input_allocate_memory);
+				   keymaster_blob_t *input, keymaster_blob_t *output,
+				   keymaster_blob_t *signature, uint32_t *out_size,
+				   const uint32_t key_size, bool *input_allocate_memory);
 
 #endif /* ANDROID_OPTEE_CRYPTO_EC_H */

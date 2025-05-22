@@ -38,7 +38,7 @@ void TA_DestroyEntryPoint(void) {
  * TA open session entry point
  */
 TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
-		TEE_Param  params[TEE_NUM_PARAMS], void **sess_ctx)
+        TEE_Param  params[TEE_NUM_PARAMS], void **sess_ctx)
 {
     uint32_t exp_param_types = TEE_PARAM_TYPES(
         TEE_PARAM_TYPE_NONE,
@@ -51,9 +51,9 @@ TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
 
     // No session context needed for this TA
     *sess_ctx = NULL;
-	(void)&params;
+    (void)&params;
 
-	return TEE_SUCCESS;
+    return TEE_SUCCESS;
 }
 
 /*
@@ -61,8 +61,8 @@ TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
  */
 void TA_CloseSessionEntryPoint(void *sess_ctx)
 {
-	/* Unused parameters */
-	(void)sess_ctx;
+    /* Unused parameters */
+    (void)sess_ctx;
 }
 
 static void get_random(gatekeeper_device_t *dev, void *random,
@@ -287,25 +287,25 @@ compute_password_signature(gatekeeper_device_t *dev, uint8_t *signature,
                            password_length + sizeof(salt));
 }
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
-			uint32_t param_types, TEE_Param params[TEE_NUM_PARAMS])
+            uint32_t param_types, TEE_Param params[TEE_NUM_PARAMS])
 {
 
-	// Decode param_types for debugging
+    // Decode param_types for debugging
 
-	// Print buffer sizes if they are memory references
-	if (TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INPUT ||
-	    TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
-	    TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INOUT) {
-	}
+    // Print buffer sizes if they are memory references
+    if (TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INPUT ||
+        TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
+        TEE_PARAM_TYPE_GET(param_types, 0) == TEE_PARAM_TYPE_MEMREF_INOUT) {
+    }
 
-	if (TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INPUT ||
-	    TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
-	    TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INOUT) {
-	}
+    if (TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INPUT ||
+        TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_OUTPUT ||
+        TEE_PARAM_TYPE_GET(param_types, 1) == TEE_PARAM_TYPE_MEMREF_INOUT) {
+    }
 
-	TEE_Result res = TEE_ERROR_GENERIC;
-	if (param_types != TEE_PARAM_TYPES(
-		TEE_PARAM_TYPE_MEMREF_INPUT,
+    TEE_Result res = TEE_ERROR_GENERIC;
+    if (param_types != TEE_PARAM_TYPES(
+        TEE_PARAM_TYPE_MEMREF_INPUT,
         TEE_PARAM_TYPE_MEMREF_OUTPUT,
         TEE_PARAM_TYPE_NONE,
         TEE_PARAM_TYPE_NONE))
@@ -485,7 +485,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
             return TEE_ERROR_BAD_PARAMETERS;
     }
 
-	(void)&sess_ctx; /* Unused parameter */
+    (void)&sess_ctx; /* Unused parameter */
 
-	return TEE_ERROR_BAD_PARAMETERS;
+    return TEE_ERROR_BAD_PARAMETERS;
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,10 +46,10 @@ static uint32_t TA_get_hash_size(const TEE_OperationHandle *digest_op)
 }
 
 static keymaster_error_t TA_check_input_rsa(const keymaster_operation_t *operation,
-					    const uint8_t *in_buf,
-					    const uint32_t in_buf_l,
-					    const uint32_t key_size,
-					    const TEE_ObjectHandle obj_h)
+						const uint8_t *in_buf,
+						const uint32_t in_buf_l,
+						const uint32_t key_size,
+						const TEE_ObjectHandle obj_h)
 {
 	keymaster_error_t res = KM_ERROR_OK;
 	uint8_t *modulus = NULL;
@@ -59,7 +59,7 @@ static keymaster_error_t TA_check_input_rsa(const keymaster_operation_t *operati
 	uint32_t salt_len = 0;
 
 	if (operation->purpose == KM_PURPOSE_SIGN && operation->digest_op != NULL &&
-	    operation->padding == KM_PAD_RSA_PSS) {
+		operation->padding == KM_PAD_RSA_PSS) {
 		hash_len = TA_get_hash_size(operation->digest_op);
 		/* salt should has same size as hash */
 		salt_len = hash_len;
@@ -76,7 +76,7 @@ static keymaster_error_t TA_check_input_rsa(const keymaster_operation_t *operati
 	 * signing and encryption operations
 	 */
 	if (operation->purpose == KM_PURPOSE_SIGN ||
-	    operation->purpose == KM_PURPOSE_ENCRYPT) {
+		operation->purpose == KM_PURPOSE_ENCRYPT) {
 		if (in_buf_l == key_size / 8) {
 			/* If the data is the same length as the key */
 			if (!modulus) {
@@ -147,14 +147,14 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 		in_buf_l = input->data_length;
 	}
 	if (operation->purpose == KM_PURPOSE_VERIFY &&
-	    (signature.data == NULL || signature.data_length == 0)) {
+		(signature.data == NULL || signature.data_length == 0)) {
 		EMSG("RSA verification signature is absent");
 		res = KM_ERROR_VERIFICATION_FAILED;
 		goto out;
 	}
 	if (in_buf_l == 0 &&
-	    (operation->padding != KM_PAD_NONE || operation->got_input) &&
-	    !TA_is_signature_purpose(operation->purpose)) {
+		(operation->padding != KM_PAD_NONE || operation->got_input) &&
+		!TA_is_signature_purpose(operation->purpose)) {
 		*out_size = 0;
 		goto out;
 	}
@@ -163,8 +163,8 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 		 * signing and encryption operations
 		 */
 		if (operation->purpose == KM_PURPOSE_SIGN ||
-		    operation->purpose == KM_PURPOSE_ENCRYPT ||
-		    operation->purpose == KM_PURPOSE_DECRYPT) {
+			operation->purpose == KM_PURPOSE_ENCRYPT ||
+			operation->purpose == KM_PURPOSE_DECRYPT) {
 			/* if the provided data is shorter than the key */
 			if (in_buf_l < key_size / 8) {
 				/* the data must be zero-padded on
@@ -206,17 +206,17 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 			/* mLen <= k - 2hLen - 2 */
 			if (in_buf_l + 2 + 2 * operation->digestLength > key_size / 8) {
 				EMSG("RSA OAEP encryption too large message %d",
-				     in_buf_l);
+					 in_buf_l);
 				res = KM_ERROR_INVALID_INPUT_LENGTH;
 				goto out;
 			}
 		}
 		res = TEE_AsymmetricEncrypt(*operation->operation, NULL, 0, in_buf,
-					    in_buf_l, output->data, out_size);
+						in_buf_l, output->data, out_size);
 		break;
 	case KM_PURPOSE_DECRYPT:
 		res = TEE_AsymmetricDecrypt(*operation->operation, NULL, 0, in_buf,
-					    in_buf_l, output->data, out_size);
+						in_buf_l, output->data, out_size);
 		break;
 	case KM_PURPOSE_VERIFY:
 	case KM_PURPOSE_SIGN:
@@ -242,13 +242,13 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 					in_buf = signature.data;
 					in_buf_l = signature.data_length;
 					res = TEE_AsymmetricEncrypt(*operation->operation,
-								    NULL, 0,
-								    in_buf,
-								    in_buf_l, /*in: signature*/
-								    output->data,
-								    out_size); /*out: message + padding*/
+									NULL, 0,
+									in_buf,
+									in_buf_l, /*in: signature*/
+									output->data,
+									out_size); /*out: message + padding*/
 					if ((uint32_t)res == TEE_ERROR_BAD_PARAMETERS ||
-					    (uint32_t)res == TEE_ERROR_SHORT_BUFFER) {
+						(uint32_t)res == TEE_ERROR_SHORT_BUFFER) {
 						res = KM_ERROR_UNKNOWN_ERROR;
 						goto out;
 					}
@@ -264,17 +264,17 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 					}
 				} else if (operation->purpose == KM_PURPOSE_SIGN) {
 					res = TEE_AsymmetricDecrypt(*operation->operation,
-								    NULL, 0,
-								    in_buf,
-								    in_buf_l,
-								    output->data,
-								    out_size);
+									NULL, 0,
+									in_buf,
+									in_buf_l,
+									output->data,
+									out_size);
 				}
 				break;
 			}
 		}
 		if (operation->purpose == KM_PURPOSE_VERIFY &&
-		    operation->padding != KM_PAD_NONE) {
+			operation->padding != KM_PAD_NONE) {
 			*out_size = 0;
 			res = TEE_AsymmetricVerifyDigest(*operation->operation, attrs,
 							 attrs_count, in_buf, in_buf_l,
@@ -286,21 +286,21 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 		} else if (operation->purpose == KM_PURPOSE_SIGN &&
 			   operation->padding != KM_PAD_NONE) {
 			res = TEE_AsymmetricSignDigest(*operation->operation, attrs,
-						       attrs_count, in_buf, in_buf_l,
-						       output->data, out_size);
+							   attrs_count, in_buf, in_buf_l,
+							   output->data, out_size);
 			/* Convert error code to Android style */
 			if (res == (int)TEE_ERROR_SHORT_BUFFER &&
-			    operation->padding == KM_PAD_RSA_PKCS1_1_5_SIGN) {
+				operation->padding == KM_PAD_RSA_PKCS1_1_5_SIGN) {
 				res = KM_ERROR_INVALID_ARGUMENT;
 			}
 		} else if (operation->purpose == KM_PURPOSE_VERIFY &&
 			   operation->padding == KM_PAD_NONE) {
 			res = TEE_AsymmetricEncrypt(*operation->operation, NULL, 0,
-						    in_buf, in_buf_l, /*in: signature*/
-						    output->data,
-						    out_size); /*out: message + padding*/
+							in_buf, in_buf_l, /*in: signature*/
+							output->data,
+							out_size); /*out: message + padding*/
 			if ((uint32_t)res == TEE_ERROR_BAD_PARAMETERS ||
-			    (uint32_t)res == TEE_ERROR_SHORT_BUFFER)
+				(uint32_t)res == TEE_ERROR_SHORT_BUFFER)
 				res = KM_ERROR_UNKNOWN_ERROR;
 
 			output->data_length = *out_size;
@@ -314,8 +314,8 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 		} else if (operation->purpose == KM_PURPOSE_SIGN &&
 			   operation->padding == KM_PAD_NONE) {
 			res = TEE_AsymmetricDecrypt(*operation->operation, NULL, 0,
-						    in_buf, in_buf_l, output->data,
-						    out_size);
+							in_buf, in_buf_l, output->data,
+							out_size);
 		}
 		break;
 	default:
@@ -323,9 +323,9 @@ keymaster_error_t TA_rsa_finish(keymaster_operation_t *operation, keymaster_blob
 		goto out;
 	}
 	if (res == KM_ERROR_OK && *out_size < key_size / 8 &&
-	    operation->padding == KM_PAD_NONE &&
-	    (operation->purpose == KM_PURPOSE_ENCRYPT ||
-	     operation->purpose == KM_PURPOSE_DECRYPT)) {
+		operation->padding == KM_PAD_NONE &&
+		(operation->purpose == KM_PURPOSE_ENCRYPT ||
+		 operation->purpose == KM_PURPOSE_DECRYPT)) {
 		/*
 		 * If result is left padded with zeroes TEE_AsymmetricEncrypt
 		 * and TEE_AsymmetricEncrypt for unpadded operation truncate all
@@ -351,7 +351,7 @@ keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 
 	if (input->data_length > key_bytes && *operation->digest_op == TEE_HANDLE_NULL) {
 		EMSG("Input (%lu) exeeds RSA key size (%u)", input->data_length,
-		     key_bytes);
+			 key_bytes);
 		return KM_ERROR_INVALID_INPUT_LENGTH;
 	}
 	switch (operation->purpose) {
@@ -369,17 +369,17 @@ keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 				return res;
 			if (operation->purpose == KM_PURPOSE_DECRYPT) {
 				res = TEE_AsymmetricDecrypt(*operation->operation, NULL,
-							    0, input->data,
-							    input->data_length,
-							    output->data, out_size);
+								0, input->data,
+								input->data_length,
+								output->data, out_size);
 			} else {
 				res = TEE_AsymmetricEncrypt(*operation->operation, NULL,
-							    0, input->data,
-							    input->data_length,
-							    output->data, out_size);
+								0, input->data,
+								input->data_length,
+								output->data, out_size);
 			}
 			if (operation->padding == KM_PAD_NONE && res == KM_ERROR_OK &&
-			    *out_size < key_bytes)
+				*out_size < key_bytes)
 				/*
 				 * If result is left padded with
 				 * zeroes TEE_AsymmetricDecrypt and
@@ -390,7 +390,7 @@ keymaster_error_t TA_rsa_update(keymaster_operation_t *operation,
 				res = TA_do_rsa_pad(&output->data, out_size, key_size);
 			/* Convert error code to Android type */
 			if (res == (int)TEE_ERROR_BAD_PARAMETERS &&
-			    operation->padding != KM_PAD_NONE)
+				operation->padding != KM_PAD_NONE)
 				res = KM_ERROR_INVALID_INPUT_LENGTH;
 			*input_consumed = input_provided;
 			output->data_length = *out_size;

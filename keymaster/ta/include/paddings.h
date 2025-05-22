@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,7 @@
 #include "ta_ca_defs.h"
 
 keymaster_error_t TA_check_out_size(const uint32_t input_l, keymaster_blob_t *output,
-				    uint32_t *out_size, uint32_t tag_len);
+					uint32_t *out_size, uint32_t tag_len);
 
 keymaster_error_t TA_add_pkcs7_pad(keymaster_blob_t *input, const bool force,
 				   keymaster_blob_t *output, uint32_t *out_size);
@@ -40,6 +40,6 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
 				const uint32_t key_size);
 
 keymaster_error_t TA_do_rsa_pkcs_v1_5_rawpad(uint8_t **input, uint32_t *input_l,
-					     const uint32_t key_size);
+						 const uint32_t key_size);
 
 #endif /* ANDROID_OPTEE_PADDINGS_H */

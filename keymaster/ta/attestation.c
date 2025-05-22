@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,9 +45,9 @@ void TA_enum_attest_objs(void)
 							   objectID,
 							   &objectIDLen) == TEE_SUCCESS) {
 				DMSG("OBJ:%d|%x|%d|%d|%d|%d", objectIDLen,
-				     objInfo.objectType, objInfo.keySize,
-				     objInfo.maxKeySize, objInfo.dataSize,
-				     objInfo.dataPosition);
+					 objInfo.objectType, objInfo.keySize,
+					 objInfo.maxKeySize, objInfo.dataSize,
+					 objInfo.dataPosition);
 			}
 		}
 		TEE_FreePersistentObjectEnumerator(objectEnumerator);
@@ -65,25 +65,25 @@ void TA_wipe_attest_objs(void)
 			 TEE_DATA_FLAG_SHARE_WRITE;
 	DMSG("Wipe persistent objects!");
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, RsaAttKeyID,
-				       sizeof(RsaAttKeyID), flags, &object);
+					   sizeof(RsaAttKeyID), flags, &object);
 	if (res == TEE_SUCCESS) {
 		TEE_CloseAndDeletePersistentObject1(object);
 		DMSG("Deleted RSA key!");
 	}
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, EcAttKeyID,
-				       sizeof(EcAttKeyID), flags, &object);
+					   sizeof(EcAttKeyID), flags, &object);
 	if (res == TEE_SUCCESS) {
 		TEE_CloseAndDeletePersistentObject1(object);
 		DMSG("Deleted EC key!");
 	}
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, RSARootAttCertID,
-				       sizeof(RSARootAttCertID), flags, &object);
+					   sizeof(RSARootAttCertID), flags, &object);
 	if (res == TEE_SUCCESS) {
 		TEE_CloseAndDeletePersistentObject1(object);
 		DMSG("Deleted RSA cert!");
 	}
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, ECRootAttCertID,
-				       sizeof(ECRootAttCertID), flags, &object);
+					   sizeof(ECRootAttCertID), flags, &object);
 	if (res == TEE_SUCCESS) {
 		TEE_CloseAndDeletePersistentObject1(object);
 		DMSG("Deleted EC cert!");
@@ -96,8 +96,8 @@ TEE_Result TA_open_rsa_attest_key(TEE_ObjectHandle *rsaKey)
 	TEE_Result res = TEE_SUCCESS;
 	DMSG("Open RSA root attestation key");
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, RsaAttKeyID,
-				       sizeof(RsaAttKeyID), TEE_DATA_FLAG_ACCESS_READ,
-				       rsaKey);
+					   sizeof(RsaAttKeyID), TEE_DATA_FLAG_ACCESS_READ,
+					   rsaKey);
 	if (res == TEE_SUCCESS) {
 		DMSG("RSA root attestation key successfully opened");
 	} else if (res == TEE_ERROR_ITEM_NOT_FOUND) {
@@ -113,8 +113,8 @@ TEE_Result TA_open_ec_attest_key(TEE_ObjectHandle *ecKey)
 	TEE_Result res = TEE_SUCCESS;
 	DMSG("Open EC root attestation key");
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, EcAttKeyID,
-				       sizeof(EcAttKeyID), TEE_DATA_FLAG_ACCESS_READ,
-				       ecKey);
+					   sizeof(EcAttKeyID), TEE_DATA_FLAG_ACCESS_READ,
+					   ecKey);
 	if (res == TEE_SUCCESS) {
 		DMSG("EC root attestation key successfully opened");
 	} else if (res == TEE_ERROR_ITEM_NOT_FOUND) {
@@ -130,8 +130,8 @@ TEE_Result TA_open_root_rsa_attest_cert(TEE_ObjectHandle *attCert)
 	TEE_Result res = TEE_SUCCESS;
 	DMSG("Open root RSA attestation certificate");
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, RSARootAttCertID,
-				       sizeof(RSARootAttCertID),
-				       TEE_DATA_FLAG_ACCESS_READ, attCert);
+					   sizeof(RSARootAttCertID),
+					   TEE_DATA_FLAG_ACCESS_READ, attCert);
 	if (res == TEE_SUCCESS) {
 		DMSG("RSA root certificate successfully opened");
 	} else if (res == TEE_ERROR_ITEM_NOT_FOUND) {
@@ -147,8 +147,8 @@ TEE_Result TA_open_root_ec_attest_cert(TEE_ObjectHandle *attCert)
 	TEE_Result res = TEE_SUCCESS;
 	DMSG("Open root EC attestation certificate");
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, ECRootAttCertID,
-				       sizeof(ECRootAttCertID), TEE_DATA_FLAG_ACCESS_READ,
-				       attCert);
+					   sizeof(ECRootAttCertID), TEE_DATA_FLAG_ACCESS_READ,
+					   attCert);
 	if (res == TEE_SUCCESS) {
 		DMSG("EC root certificate successfully opened");
 	} else if (res == TEE_ERROR_ITEM_NOT_FOUND) {
@@ -178,7 +178,7 @@ static TEE_Result TA_set_rsa_attest_key(keymaster_blob_t key_data)
 
 	if (key_size % 8 != 0 || key_size > MAX_KEY_RSA) {
 		EMSG("RSA key size %d must be multiple of 8 and less than %u", key_size,
-		     MAX_KEY_RSA);
+			 MAX_KEY_RSA);
 		goto error_2;
 	}
 
@@ -188,9 +188,9 @@ static TEE_Result TA_set_rsa_attest_key(keymaster_blob_t key_data)
 	 * TEE_STORAGE_PRIVATE_RPMB
 	 */
 	result = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE, RsaAttKeyID,
-					    sizeof(RsaAttKeyID),
-					    TEE_DATA_FLAG_ACCESS_WRITE, TEE_HANDLE_NULL,
-					    NULL, 0U, &RSAobject);
+						sizeof(RsaAttKeyID),
+						TEE_DATA_FLAG_ACCESS_WRITE, TEE_HANDLE_NULL,
+						NULL, 0U, &RSAobject);
 	if (result != TEE_SUCCESS) {
 		EMSG("Failed to create a RSA persistent key, res=%x", result);
 		goto error_2;
@@ -199,12 +199,12 @@ static TEE_Result TA_set_rsa_attest_key(keymaster_blob_t key_data)
 	for (uint32_t i = 0; i < attrs_count; i++) {
 		//Store RSA key in format: size | buffer attribute
 		DMSG("attrs[i].attributeID 0x%08X size %d", attrs[i].attributeID,
-		     attrs[i].content.ref.length);
+			 attrs[i].content.ref.length);
 		result = TA_write_obj_attr(RSAobject, attrs[i].content.ref.buffer,
 					   attrs[i].content.ref.length);
 		if (result != TEE_SUCCESS) {
 			EMSG("Failed to write RSA attribute %x, res=%x",
-			     attrs[i].attributeID, result);
+				 attrs[i].attributeID, result);
 			goto error_3;
 		}
 	}
@@ -248,9 +248,9 @@ static TEE_Result TA_set_ec_attest_key(keymaster_blob_t key_data)
 	 * TEE_STORAGE_PRIVATE_RPMB
 	 */
 	result = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE, EcAttKeyID,
-					    sizeof(EcAttKeyID),
-					    TEE_DATA_FLAG_ACCESS_WRITE, TEE_HANDLE_NULL,
-					    NULL, 0U, &ECobject);
+						sizeof(EcAttKeyID),
+						TEE_DATA_FLAG_ACCESS_WRITE, TEE_HANDLE_NULL,
+						NULL, 0U, &ECobject);
 	if (result != TEE_SUCCESS) {
 		if (result == TEE_ERROR_ACCESS_CONFLICT)
 			EMSG("Key already provisioned");
@@ -272,12 +272,12 @@ static TEE_Result TA_set_ec_attest_key(keymaster_blob_t key_data)
 		case TEE_ATTR_ECC_PUBLIC_VALUE_Y:
 		case TEE_ATTR_ECC_PRIVATE_VALUE:
 			DMSG("attrs[i].attributeID 0x%08X size %d", attrs[i].attributeID,
-			     attrs[i].content.ref.length);
+				 attrs[i].content.ref.length);
 			result = TA_write_obj_attr(ECobject, attrs[i].content.ref.buffer,
 						   attrs[i].content.ref.length);
 			if (result != TEE_SUCCESS) {
 				EMSG("Failed to write EC attribute %x, res=%x",
-				     attrs[i].attributeID, result);
+					 attrs[i].attributeID, result);
 				goto error_3;
 			}
 			break;
@@ -314,8 +314,8 @@ static TEE_Result TA_append_root_rsa_attest_cert(keymaster_blob_t cert)
 		//Open object in storage
 		TEE_CloseObject(CertObject);
 		res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, RSARootAttCertID,
-					       sizeof(RSARootAttCertID),
-					       TEE_DATA_FLAG_ACCESS_WRITE, &CertObject);
+						   sizeof(RSARootAttCertID),
+						   TEE_DATA_FLAG_ACCESS_WRITE, &CertObject);
 	}
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to create a persistent RSA certificate object, res=%x", res);
@@ -334,7 +334,7 @@ static TEE_Result TA_append_root_rsa_attest_cert(keymaster_blob_t cert)
 
 error_2:
 	(res == TEE_SUCCESS) ? TEE_CloseObject(CertObject) :
-			       TEE_CloseAndDeletePersistentObject(CertObject);
+				   TEE_CloseAndDeletePersistentObject(CertObject);
 
 error_1:
 	return res;
@@ -358,8 +358,8 @@ static TEE_Result TA_append_root_ec_attest_cert(keymaster_blob_t cert)
 		//Open object in storage
 		TEE_CloseObject(CertObject);
 		res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE, ECRootAttCertID,
-					       sizeof(ECRootAttCertID),
-					       TEE_DATA_FLAG_ACCESS_WRITE, &CertObject);
+						   sizeof(ECRootAttCertID),
+						   TEE_DATA_FLAG_ACCESS_WRITE, &CertObject);
 	}
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to create a persistent EC certificate object, res=%x", res);
@@ -378,7 +378,7 @@ static TEE_Result TA_append_root_ec_attest_cert(keymaster_blob_t cert)
 
 error_2:
 	(res == TEE_SUCCESS) ? TEE_CloseObject(CertObject) :
-			       TEE_CloseAndDeletePersistentObject(CertObject);
+				   TEE_CloseAndDeletePersistentObject(CertObject);
 
 error_1:
 	return res;
@@ -435,7 +435,7 @@ static TEE_Result TA_create_rsa_attest_key(void)
 							   buffer, &buffSize);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to get RSA buffer attribute %x, res=%x",
-				     attributes[i], res);
+					 attributes[i], res);
 				goto error_3;
 			}
 
@@ -443,7 +443,7 @@ static TEE_Result TA_create_rsa_attest_key(void)
 			res = TA_write_obj_attr(RSAobject, buffer, buffSize);
 			if (res != TEE_SUCCESS) {
 				EMSG("Failed to write RSA attribute %x, res=%x",
-				     attributes[i], res);
+					 attributes[i], res);
 				goto error_3;
 			}
 		}
@@ -452,7 +452,7 @@ error_3:
 			TEE_Free(buffer);
 		}
 		(res == TEE_SUCCESS) ? TEE_CloseObject(RSAobject) :
-				       TEE_CloseAndDeletePersistentObject(RSAobject);
+					   TEE_CloseAndDeletePersistentObject(RSAobject);
 
 error_2:
 		if (transient_key != TEE_HANDLE_NULL) {
@@ -496,9 +496,9 @@ static TEE_Result TA_create_ec_attest_key(void)
 		}
 		//Generating an object (MUST provide TEE_ATTR_ECC_CURVE)
 		TEE_InitValueAttribute(&attrs[0], TEE_ATTR_ECC_CURVE,
-				       TA_get_curve_nist(EC_KEY_SIZE), 0);
+					   TA_get_curve_nist(EC_KEY_SIZE), 0);
 		res = TEE_GenerateKey(transient_key, EC_KEY_SIZE, attrs,
-				      sizeof(attrs) / sizeof(TEE_Attribute));
+					  sizeof(attrs) / sizeof(TEE_Attribute));
 		if (res != TEE_SUCCESS) {
 			EMSG("Failed to generate EC key, res=%x", res);
 			goto error_2;
@@ -527,7 +527,7 @@ static TEE_Result TA_create_ec_attest_key(void)
 								  attributes[i], &a, &b);
 				if (res != TEE_SUCCESS) {
 					EMSG("Failed to get EC value attribute %x, res=%x",
-					     attributes[i], res);
+						 attributes[i], res);
 					goto error_3;
 				}
 
@@ -535,7 +535,7 @@ static TEE_Result TA_create_ec_attest_key(void)
 							  sizeof(uint32_t));
 				if (res != TEE_SUCCESS) {
 					EMSG("Failed to write EC value attribute %x, res=%x",
-					     attributes[i], res);
+						 attributes[i], res);
 					goto error_3;
 				}
 			} else {
@@ -547,7 +547,7 @@ static TEE_Result TA_create_ec_attest_key(void)
 								   &buffSize);
 				if (res != TEE_SUCCESS) {
 					EMSG("Failed to get EC buffer attribute %x, res=%x",
-					     attributes[i], res);
+						 attributes[i], res);
 					goto error_3;
 				}
 
@@ -556,7 +556,7 @@ static TEE_Result TA_create_ec_attest_key(void)
 				res = TA_write_obj_attr(ECobject, buffer, buffSize);
 				if (res != TEE_SUCCESS) {
 					EMSG("Failed to write EC attribute %x, res=%x",
-					     attributes[i], res);
+						 attributes[i], res);
 					goto error_3;
 				}
 			}
@@ -566,7 +566,7 @@ error_3:
 			TEE_Free(buffer);
 		}
 		(res == TEE_SUCCESS) ? TEE_CloseObject(ECobject) :
-				       TEE_CloseAndDeletePersistentObject(ECobject);
+					   TEE_CloseAndDeletePersistentObject(ECobject);
 
 error_2:
 		if (transient_key != TEE_HANDLE_NULL) {
@@ -615,7 +615,7 @@ static TEE_Result TA_create_root_rsa_attest_cert(void)
 						 TEE_HANDLE_NULL, NULL, 0U, &CertObject);
 		if (res != TEE_SUCCESS) {
 			EMSG("Failed to create a persistent RSA certificate object, res=%x",
-			     res);
+				 res);
 			goto error_2;
 		}
 
@@ -627,7 +627,7 @@ static TEE_Result TA_create_root_rsa_attest_cert(void)
 		}
 
 		(res == TEE_SUCCESS) ? TEE_CloseObject(CertObject) :
-				       TEE_CloseAndDeletePersistentObject(CertObject);
+					   TEE_CloseAndDeletePersistentObject(CertObject);
 
 error_2:
 		if (root_cert.data) {
@@ -677,7 +677,7 @@ static TEE_Result TA_create_root_ec_attest_cert(void)
 						 TEE_HANDLE_NULL, NULL, 0U, &CertObject);
 		if (res != TEE_SUCCESS) {
 			EMSG("Failed to create a persistent EC certificate object, res=%x",
-			     res);
+				 res);
 			goto error_2;
 		}
 
@@ -689,7 +689,7 @@ static TEE_Result TA_create_root_ec_attest_cert(void)
 		}
 
 		(res == TEE_SUCCESS) ? TEE_CloseObject(CertObject) :
-				       TEE_CloseAndDeletePersistentObject(CertObject);
+					   TEE_CloseAndDeletePersistentObject(CertObject);
 
 error_2:
 		if (root_cert.data) {
@@ -856,7 +856,7 @@ static uint32_t fetch_length(const uint8_t *in, uint32_t inlen)
 }
 
 TEE_Result TA_read_attest_cert(TEE_ObjectHandle attObj,
-			       keymaster_cert_chain_t *cert_chain)
+				   keymaster_cert_chain_t *cert_chain)
 {
 	TEE_Result res = TEE_SUCCESS;
 	TEE_ObjectInfo info = { 0 };
@@ -991,7 +991,7 @@ TEE_Result TA_generate_UniqueID(uint64_t T, uint8_t *appID, uint32_t appIDlen, u
 	}
 
 	res = TEE_AllocateOperation(&op, TEE_ALG_HMAC_SHA256, TEE_MODE_MAC,
-				    HMAC_SHA256_KEY_SIZE_BIT);
+					HMAC_SHA256_KEY_SIZE_BIT);
 	if (res != TEE_SUCCESS) {
 		EMSG("Failed to allocate HMAC operation, res=%x", res);
 		goto exit;

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,7 @@ bool TA_check_pkcs7_pad(keymaster_blob_t *output)
 	uint8_t pad;
 
 	if (output->data == NULL || output->data_length == 0 ||
-	    output->data_length < BLOCK_SIZE || output->data_length % BLOCK_SIZE != 0)
+		output->data_length < BLOCK_SIZE || output->data_length % BLOCK_SIZE != 0)
 		return false;
 	last_i = output->data_length - 1;
 	pad = output->data[last_i];
@@ -37,15 +37,15 @@ bool TA_check_pkcs7_pad(keymaster_blob_t *output)
 }
 
 keymaster_error_t TA_check_out_size(const uint32_t input_l, keymaster_blob_t *output,
-				    uint32_t *out_size, uint32_t tag_len)
+					uint32_t *out_size, uint32_t tag_len)
 {
 	uint8_t *ptr = NULL;
 
 	/* Recalculate output size */
 	if (*out_size !=
-	    (((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1) * BLOCK_SIZE + tag_len)) {
+		(((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1) * BLOCK_SIZE + tag_len)) {
 		*out_size = ((input_l + BLOCK_SIZE - 1) / BLOCK_SIZE + 1) * BLOCK_SIZE +
-			    tag_len;
+				tag_len;
 		ptr = TEE_Realloc(output->data, *out_size);
 		if (!ptr) {
 			EMSG("Failed reallocate memory for output");
@@ -143,7 +143,7 @@ keymaster_error_t TA_do_rsa_pad(uint8_t **input, uint32_t *input_l,
  * with modification from https://source.android.com/security/keystore/implementer-ref#begin
  * (when Digest::NONE and PaddingMode::RSA_PKCS1_1_5_SIGN) */
 keymaster_error_t TA_do_rsa_pkcs_v1_5_rawpad(uint8_t **input, uint32_t *input_l,
-					     const uint32_t key_size)
+						 const uint32_t key_size)
 {
 	uint8_t *buf;
 	uint32_t key_size_bytes = key_size / 8;

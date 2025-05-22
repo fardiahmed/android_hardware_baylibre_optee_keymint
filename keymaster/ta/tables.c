@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -63,10 +63,10 @@ static void clean_timers(void)
 	TEE_GetSystemTime(&cur_t);
 	for (uint32_t i = 0; i < KM_MAX_USE_TIMERS; i++) {
 		if (use_timers[i].last_access.seconds != 0 &&
-		    (cur_t.seconds >=
-		     use_timers[i].last_access.seconds + use_timers[i].min_sec)) {
+			(cur_t.seconds >=
+			 use_timers[i].last_access.seconds + use_timers[i].min_sec)) {
 			TEE_MemFill(use_timers[i].key_id, 0,
-				    sizeof(use_timers[i].key_id));
+					sizeof(use_timers[i].key_id));
 			use_timers[i].min_sec = 0;
 			use_timers[i].last_access.seconds = 0;
 			use_timers[i].last_access.millis = 0;
@@ -83,7 +83,7 @@ keymaster_error_t TA_trigger_timer(uint8_t *key_id)
 
 	for (uint32_t i = 0; i < KM_MAX_USE_TIMERS; i++) {
 		if (!TEE_MemCompare(key_id, use_timers[i].key_id,
-				    sizeof(use_timers[i].key_id))) {
+					sizeof(use_timers[i].key_id))) {
 			use_timers[i].last_access = cur_t;
 			return KM_ERROR_OK;
 		}
@@ -105,7 +105,7 @@ keymaster_error_t TA_check_key_use_timer(uint8_t *key_id, const uint32_t min_sec
 		}
 
 		if (!TEE_MemCompare(key_id, use_timers[i].key_id,
-				    sizeof(use_timers[i].key_id))) {
+					sizeof(use_timers[i].key_id))) {
 			if (use_timers[i].last_access.seconds + min_sec > cur_t.seconds) {
 				return KM_ERROR_KEY_RATE_LIMIT_EXCEEDED;
 			}

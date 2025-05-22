@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,8 +46,8 @@
 uint32_t get_digest_size(const keymaster_digest_t *digest);
 
 keymaster_error_t TA_check_permission(const keymaster_key_param_set_t *params,
-				      const keymaster_blob_t client_id,
-				      const keymaster_blob_t app_data, bool *exportable);
+					  const keymaster_blob_t client_id,
+					  const keymaster_blob_t app_data, bool *exportable);
 
 keymaster_error_t TA_check_params(
 	const keymaster_key_param_set_t *key_params,
@@ -89,7 +89,7 @@ bool cmpBlobParam(const keymaster_blob_t blob, const keymaster_key_param_t param
 bool is_origination_purpose(const keymaster_purpose_t purpose);
 
 void TA_add_to_params(keymaster_key_param_set_t *params, const uint32_t key_size,
-		      const uint64_t rsa_public_exponent);
+			  const uint64_t rsa_public_exponent);
 
 void TA_free_params(keymaster_key_param_set_t *params);
 
@@ -128,7 +128,7 @@ static inline uint32_t TA_ECcurve_to_size(keymaster_ec_curve_t curve)
 }
 
 #define TAG_TO_STR(tag) \
-	case tag:       \
+	case tag:		\
 		return #tag;
 
 static inline const char *TA_tag_to_str(keymaster_tag_t tag)

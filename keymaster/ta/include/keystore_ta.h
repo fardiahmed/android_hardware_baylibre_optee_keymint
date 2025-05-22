@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -73,23 +73,23 @@
 
 uint64_t identifier_rsa[] = {1, 2, 840, 113549, 1, 1, 1};
 /* RSAPrivateKey ::= SEQUENCE {
- *    version Version,
- *    modulus INTEGER, -- n
- *    publicExponent INTEGER, -- e
- *    privateExponent INTEGER, -- d
- *    prime1 INTEGER, -- p
- *    prime2 INTEGER, -- q
- *    exponent1 INTEGER, -- d mod (p-1)
- *    exponent2 INTEGER, -- d mod (q-1)
- *    coefficient INTEGER -- (inverse of q) mod p }
+ *	  version Version,
+ *	  modulus INTEGER, -- n
+ *	  publicExponent INTEGER, -- e
+ *	  privateExponent INTEGER, -- d
+ *	  prime1 INTEGER, -- p
+ *	  prime2 INTEGER, -- q
+ *	  exponent1 INTEGER, -- d mod (p-1)
+ *	  exponent2 INTEGER, -- d mod (q-1)
+ *	  coefficient INTEGER -- (inverse of q) mod p }
  */
 
 uint64_t identifier_ec[] = { 1, 2, 840, 10045, 2, 1 };
 /* ECPrivateKey ::= SEQUNCE {
- *    version Version,
- *    secretValue OCTET_STRING,
- *    publicValue CONSTRUCTED {
- *        XYValue BIT_STRING } }
+ *	  version Version,
+ *	  secretValue OCTET_STRING,
+ *	  publicValue CONSTRUCTED {
+ *		  XYValue BIT_STRING } }
  */
 
 typedef struct tee_km_context {

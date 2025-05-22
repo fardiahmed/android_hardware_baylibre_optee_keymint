@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -81,7 +81,7 @@ TEE_Result TA_create_attest_objs(void);
 void TA_close_attest_obj(TEE_ObjectHandle attObj);
 
 TEE_Result TA_read_attest_cert(TEE_ObjectHandle attObj,
-			       keymaster_cert_chain_t *cert_chain);
+				   keymaster_cert_chain_t *cert_chain);
 
 TEE_Result TA_generate_UniqueID(uint64_t T, uint8_t *appID, uint32_t appIDlen, uint8_t R,
 				uint8_t *uniqueID, uint32_t *uniqueIDlen);
