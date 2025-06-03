@@ -232,7 +232,12 @@ keymaster_error_t TA_get_operation(const keymaster_operation_handle_t op_handle,
 	for (uint32_t i = 0; i < KM_MAX_OPERATION; i++) {
 		if (op_handle == operations[i].op_handle) {
 			TEE_GetSystemTime(&cur_t);
-			operations[i].last_access = &cur_t;
+			if (operations[i].last_access == NULL) {
+				operations[i].last_access = TEE_Malloc(sizeof(TEE_Time), 0);
+			}
+			if (operations[i].last_access != NULL) {
+				*operations[i].last_access = cur_t;
+			}
 			res = KM_ERROR_OK;
 			*operation = &operations[i];
 			break;
