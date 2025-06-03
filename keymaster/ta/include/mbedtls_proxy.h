@@ -78,4 +78,15 @@ TEE_Result TA_gen_attest_cert(TEE_ObjectHandle attestedKey,
 				  keymaster_algorithm_t alg,
 				  keymaster_cert_chain_t *cert_chain);
 
+/*
+ * Root of Trust ASN.1 encoding functions
+ */
+int asn1_encode_root_of_trust_response(const avb_root_of_trust_t *rot,
+				       const keymaster_blob_t *challenge,
+				       keymaster_blob_t *response);
+
+int create_signed_root_of_trust_response(const avb_root_of_trust_t *rot,
+					  const keymaster_blob_t *challenge,
+					  keymaster_blob_t *response);
+
 #endif /* MBEDTLS_PROXY_H_ */

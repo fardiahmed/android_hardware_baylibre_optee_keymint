@@ -296,6 +296,39 @@ typedef struct {
 	size_t data_length;
 } keymaster_blob_t;
 
+/* Root of Trust structure for Android Verified Boot */
+typedef struct {
+	uint8_t verified_boot_key[32];    /* AVB public key */
+	uint32_t device_locked;           /* Device lock state */
+	uint32_t verified_boot_state;     /* Verified boot state */
+	uint8_t verified_boot_hash[32];   /* Boot image hash */
+	uint64_t timestamp;               /* Boot timestamp */
+} __packed avb_root_of_trust_t;
+
+/* Root of Trust persistent storage name for AVB TA */
+#define ROT_PERSIST_NAME "avb_root_of_trust"
+
+/* AVB TA UUID (platform-specific, replace with actual UUID) */
+#define PTA_AVB_UUID \
+	{ 0x023f8f1a, 0x292a, 0x432b, \
+	  { 0x8f, 0xc4, 0xde, 0x84, 0x71, 0x35, 0x80, 0x67 } }
+
+/* AVB TA commands - must match include/tee/optee_ta_avb.h */
+#define TA_AVB_CMD_READ_ROLLBACK_INDEX   0
+#define TA_AVB_CMD_WRITE_ROLLBACK_INDEX  1
+#define TA_AVB_CMD_READ_LOCK_STATE       2
+#define TA_AVB_CMD_WRITE_LOCK_STATE      3
+#define TA_AVB_CMD_READ_PERSIST_VALUE    4
+#define TA_AVB_CMD_WRITE_PERSIST_VALUE   5
+
+/* Android Verified Boot states */
+typedef enum {
+	AVB_BOOT_STATE_GREEN = 0,   /* Boot verified and secure */
+	AVB_BOOT_STATE_YELLOW = 1,  /* Boot verified with custom key */
+	AVB_BOOT_STATE_ORANGE = 2,  /* Boot not verified */
+	AVB_BOOT_STATE_RED = 3      /* Boot corrupted */
+} avb_boot_state_t;
+
 typedef struct {
 	keymaster_tag_t tag;
 	union {

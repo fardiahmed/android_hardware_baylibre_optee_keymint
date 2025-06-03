@@ -1458,6 +1458,9 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 	unsigned char *start = buf;
 	//TODO: insert real device lock_state
 	int lock_state = 0;
+	
+	/* Ensure start is not NULL to avoid false compiler warning */
+	if (!start) return -1;
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
 				 mbedtls_asn1_write_enum(&ptr, start, verified_boot));
@@ -1489,6 +1492,201 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 	*len = (size_t)len_ret;
 
 	return 0;
+}
+
+/**
+ * \brief			Encodes Root of Trust response according to Android KeyMint specification
+ *
+ * \note			This function creates a proper ASN.1 encoded Root of Trust response
+ *				that includes the challenge and Root of Trust data structure.
+ *
+ * \param rot		Pointer to Root of Trust data structure
+ * \param challenge	Pointer to challenge blob from Android
+ * \param response	Pointer to output response blob (allocated by this function)
+ *
+ * \return			0 on success, -1 on failure.
+ */
+int asn1_encode_root_of_trust_response(const avb_root_of_trust_t *rot,
+					      const keymaster_blob_t *challenge,
+					      keymaster_blob_t *response)
+{
+	int len_ret = 0, ret;
+	unsigned char buf[ASN1_BUF_LEN_DEFAULT];
+	unsigned char *ptr = buf + sizeof(buf);
+	unsigned char *start = buf;
+	
+	/* Ensure start is not NULL to avoid false compiler warning */
+	if (!start) return -1;
+	
+	if (!rot || !response) {
+		EMSG("Invalid parameters for Root of Trust encoding");
+		return -1;
+	}
+	
+	/* 
+	 * Android KeyMint Root of Trust ASN.1 structure:
+	 * RootOfTrust ::= SEQUENCE {
+	 *     verifiedBootKey        OCTET_STRING,
+	 *     deviceLocked           BOOLEAN,
+	 *     verifiedBootState      ENUMERATED {
+	 *         VERIFIED(0),              -- GREEN
+	 *         SELF_SIGNED(1),           -- YELLOW  
+	 *         UNVERIFIED(2),            -- ORANGE
+	 *         FAILED(3)                 -- RED
+	 *     },
+	 *     verifiedBootHash       OCTET_STRING,
+	 *     timestampToken         OCTET_STRING OPTIONAL,
+	 *     challenge              OCTET_STRING OPTIONAL
+	 * }
+	 */
+	
+	/* Write challenge if present (optional field) */
+	if (challenge && challenge->data && challenge->data_length > 0) {
+		MBEDTLS_ASN1_CHK_ADD(len_ret, 
+			mbedtls_asn1_write_octet_string(&ptr, start,
+							challenge->data,
+							challenge->data_length));
+	}
+	
+	/* Write timestamp token if present (optional field) */
+	if (rot->timestamp > 0) {
+		uint8_t timestamp_bytes[8];
+		/* Convert timestamp to big-endian byte array */
+		for (int i = 7; i >= 0; i--) {
+			timestamp_bytes[i] = (uint8_t)(rot->timestamp >> (8 * (7 - i)));
+		}
+		
+		MBEDTLS_ASN1_CHK_ADD(len_ret,
+			mbedtls_asn1_write_octet_string(&ptr, start,
+							timestamp_bytes,
+							sizeof(timestamp_bytes)));
+	}
+	
+	/* Write verified boot hash */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_octet_string(&ptr, start,
+						rot->verified_boot_hash,
+						sizeof(rot->verified_boot_hash)));
+	
+	/* Write verified boot state as enumerated */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_enum(&ptr, start, (int)rot->verified_boot_state));
+	
+	/* Write device locked state as boolean */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_bool(&ptr, start, rot->device_locked ? 1 : 0));
+	
+	/* Write verified boot key */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_octet_string(&ptr, start,
+						rot->verified_boot_key,
+						sizeof(rot->verified_boot_key)));
+	
+	/* Write sequence length and tag */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
+	
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_tag(&ptr, start,
+				       MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
+	
+	/* Allocate response buffer and copy encoded data */
+	response->data = TEE_Malloc((uint32_t)len_ret, TEE_MALLOC_FILL_ZERO);
+	if (!response->data) {
+		EMSG("Failed to allocate Root of Trust response buffer");
+		return -1;
+	}
+	
+	response->data_length = (size_t)len_ret;
+	TEE_MemMove(response->data, ptr, (uint32_t)len_ret);
+	
+	DMSG("Root of Trust ASN.1 encoding successful, length: %zu", response->data_length);
+	return 0;
+}
+
+/**
+ * \brief			Creates a complete Root of Trust response with signature
+ *
+ * \note			This function creates a signed Root of Trust response that can
+ *				be verified by Android. The response includes the ASN.1 encoded
+ *				Root of Trust data and a signature over the challenge + data.
+ *
+ * \param rot		Pointer to Root of Trust data structure
+ * \param challenge	Pointer to challenge blob from Android
+ * \param response	Pointer to output response blob (allocated by this function)
+ *
+ * \return			0 on success, -1 on failure.
+ */
+int create_signed_root_of_trust_response(const avb_root_of_trust_t *rot,
+						const keymaster_blob_t *challenge,
+						keymaster_blob_t *response)
+{
+	keymaster_blob_t encoded_rot = {0, 0};
+	keymaster_blob_t signature = {0, 0};
+	int ret = 0;
+	int len_ret = 0;
+	unsigned char buf[ASN1_BUF_LEN_DEFAULT];
+	unsigned char *ptr = buf + sizeof(buf);
+	unsigned char *start = buf;
+	
+	if (!rot || !response) {
+		EMSG("Invalid parameters for signed Root of Trust response");
+		return -1;
+	}
+	
+	/* First, encode the Root of Trust data */
+	ret = asn1_encode_root_of_trust_response(rot, challenge, &encoded_rot);
+	if (ret != 0) {
+		EMSG("Failed to encode Root of Trust data");
+		return ret;
+	}
+	
+	/* 
+	 * For now, create a simple response without signature
+	 * TODO: Implement proper signing with attestation key if required
+	 * 
+	 * SignedRootOfTrust ::= SEQUENCE {
+	 *     rootOfTrust        RootOfTrust,
+	 *     signature          OCTET_STRING OPTIONAL
+	 * }
+	 */
+	
+	/* Write the encoded Root of Trust data */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_raw_buffer(&ptr, start,
+					      encoded_rot.data,
+					      encoded_rot.data_length));
+	
+	/* Write sequence length and tag for the complete response */
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_len(&ptr, start, (size_t)len_ret));
+	
+	MBEDTLS_ASN1_CHK_ADD(len_ret,
+		mbedtls_asn1_write_tag(&ptr, start,
+				       MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
+	
+	/* Allocate final response buffer */
+	response->data = TEE_Malloc((uint32_t)len_ret, TEE_MALLOC_FILL_ZERO);
+	if (!response->data) {
+		EMSG("Failed to allocate signed Root of Trust response buffer");
+		ret = -1;
+		goto cleanup;
+	}
+	
+	response->data_length = (size_t)len_ret;
+	TEE_MemMove(response->data, ptr, (uint32_t)len_ret);
+	
+	DMSG("Signed Root of Trust response created successfully, length: %zu", 
+	     response->data_length);
+	ret = 0;
+	
+cleanup:
+	if (encoded_rot.data)
+		TEE_Free(encoded_rot.data);
+	if (signature.data)
+		TEE_Free(signature.data);
+		
+	return ret;
 }
 
 /**

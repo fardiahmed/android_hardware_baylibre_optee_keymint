@@ -24,6 +24,7 @@
 #include "ta_ca_defs.h"
 #include "keystore_ta.h"
 #include "attestation.h"
+#include "mbedtls_proxy.h"
 
 static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 
@@ -326,6 +327,108 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 	return KM_ERROR_OK;
 }
 
+/*
+ * Get Root of Trust information from AVB TA
+ * This function retrieves the Root of Trust data stored during boot
+ * by the bootloader and encodes it for Android KeyMint
+ */
+static keymaster_error_t TA_getRootOfTrust(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *in = NULL;
+	uint8_t *in_end = NULL;
+	uint8_t *out = NULL;
+	uint8_t *out_end = NULL;
+	keymaster_blob_t challenge = {0, 0};
+	keymaster_blob_t rot_blob = {0, 0};
+	keymaster_error_t error = KM_ERROR_OK;
+	TEE_UUID avb_uuid = PTA_AVB_UUID;
+	TEE_TASessionHandle avb_session = TEE_HANDLE_NULL;
+	TEE_Result res = TEE_SUCCESS;
+	uint32_t param_types;
+	TEE_Param avb_params[4];
+	avb_root_of_trust_t rot;
+	
+	/* Input and output buffer setup */
+	in = (uint8_t *)params[0].memref.buffer;
+	in_end = in + params[0].memref.size;
+	out = (uint8_t *)params[1].memref.buffer;
+	out_end = out + params[1].memref.size;
+	
+	/* Deserialize the challenge from input */
+	error = TA_deserialize_blob_akms(in, in_end, &challenge, true, &error, true);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to deserialize challenge, error=%d", error);
+		goto cleanup;
+	}
+	
+	/* Open session with AVB TA to retrieve Root of Trust */
+	res = TEE_OpenTASession(&avb_uuid, TEE_TIMEOUT_INFINITE, 0, NULL,
+						   &avb_session, NULL);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to open AVB TA session: %x", res);
+		error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+		goto cleanup;
+	}
+	
+	/* Read Root of Trust data from AVB TA persistent storage */
+	param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+								 TEE_PARAM_TYPE_MEMREF_OUTPUT,
+								 TEE_PARAM_TYPE_NONE,
+								 TEE_PARAM_TYPE_NONE);
+	
+	TEE_MemFill(avb_params, 0, sizeof(avb_params));
+	
+	avb_params[0].memref.buffer = (void *)ROT_PERSIST_NAME;
+	avb_params[0].memref.size = strlen(ROT_PERSIST_NAME);
+	avb_params[1].memref.buffer = &rot;
+	avb_params[1].memref.size = sizeof(rot);
+
+	res = TEE_InvokeTACommand(avb_session, TEE_TIMEOUT_INFINITE,
+							 TA_AVB_CMD_READ_PERSIST_VALUE,
+							 param_types, avb_params, NULL);
+	
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to read Root of Trust from AVB TA: %x", res);
+		error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+		goto cleanup_session;
+	}
+	DMSG("TA_getRootOfTrust: Données Root of Trust lues avec succès depuis AVB TA");
+	
+	DMSG("Root of Trust retrieved successfully");
+	DMSG("Device locked: %u", rot.device_locked);
+	DMSG("Boot state: %u", rot.verified_boot_state);
+	
+	/* Create proper ASN.1 encoded Root of Trust response */
+	int asn1_ret = asn1_encode_root_of_trust_response(&rot, &challenge, &rot_blob);
+	if (asn1_ret != 0) {
+		EMSG("Failed to ASN.1 encode Root of Trust response");
+		error = KM_ERROR_UNKNOWN_ERROR;
+		goto cleanup_session;
+	}
+	
+	/* Serialize the response error first (KeyMaster protocol requirement) */
+	bool oob = false;
+	error = TA_serialize_blob_akms(out, out_end, &rot_blob, &oob);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to serialize Root of Trust response, error=%d", error);
+		goto cleanup_session;
+	}
+	
+	params[1].memref.size = rot_blob.data_length;
+	
+cleanup_session:
+	if (avb_session != TEE_HANDLE_NULL)
+		TEE_CloseTASession(avb_session);
+	
+cleanup:
+	if (challenge.data)
+		TEE_Free(challenge.data);
+	if (rot_blob.data)
+		TEE_Free(rot_blob.data);
+		
+	return error;
+}
+
 static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 {
 	uint8_t *in = NULL;
@@ -372,7 +475,8 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 		EMSG("[DEBUG] %s: Input buffer too small for parameter count", __func__);
 		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
 	}
-	param_count = *(uint32_t *)in;
+	uint32_t temp_param_count = *(uint32_t *)in;
+	param_count = (size_t)temp_param_count;
 	in += sizeof(uint32_t);
 	
 	DMSG("[DEBUG] %s: Processing %zu HMAC parameters", __func__, param_count);
@@ -570,7 +674,9 @@ static keymaster_error_t TA_computeSharedHmac(TEE_Param params[TEE_NUM_PARAMS])
 	/* Compute HMAC */
 	TEE_MACInit(op_hmac, NULL, 0);
 	TEE_MACUpdate(op_hmac, buffer, buffer_offset);
-	res = TEE_MACComputeFinal(op_hmac, NULL, 0, hmac_result->data, &hmac_result->data_length);
+	uint32_t hmac_len = (uint32_t)hmac_result->data_length;
+	res = TEE_MACComputeFinal(op_hmac, NULL, 0, hmac_result->data, &hmac_len);
+	hmac_result->data_length = (size_t)hmac_len;
 	if (res != TEE_SUCCESS) {
 		EMSG("[DEBUG] %s: HMAC computation failed: 0x%x", __func__, res);
 		error = KM_ERROR_UNKNOWN_ERROR;
@@ -2451,7 +2557,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_DEVICE_LOCKED:
 	case KM_GENERATE_RKP_KEY:
 	case KM_GENERATE_CSR:
-	case KM_GET_ROOT_OF_TRUST:
 	case KM_GET_HW_INFO:
 	case KM_GENERATE_CSR_V2:
 		error = TA_unimplementedOperation(params);
@@ -2459,6 +2564,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_SET_ADDITIONAL_ATTESTATION_INFO:
 		DMSG("KM_SET_ADDITIONAL_ATTESTATION_INFO");
 		error = TA_setAdditionalAttestationInfo(params);
+		break;
+	case KM_GET_ROOT_OF_TRUST:
+		DMSG("KM_GET_ROOT_OF_TRUST");
+		error = TA_getRootOfTrust(params);
 		break;
 
 #ifdef CFG_ATTESTATION_PROVISIONING
