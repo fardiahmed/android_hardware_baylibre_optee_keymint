@@ -30,6 +30,69 @@ static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 static tee_km_context_t optee_km_context;
 static hmac_sharing_parameters_t *hmac_saved_parameters = NULL;
 
+#define MODULE_HASH_STORAGE_ID "keymaster_module_hash"
+#define MODULE_HASH_SIZE 32
+
+/* Secure storage functions for module hash */
+static TEE_Result store_module_hash(const uint8_t *hash)
+{
+	TEE_ObjectHandle object = TEE_HANDLE_NULL;
+	TEE_Result res;
+
+	res = TEE_CreatePersistentObject(
+		TEE_STORAGE_PRIVATE, MODULE_HASH_STORAGE_ID, strlen(MODULE_HASH_STORAGE_ID),
+		TEE_DATA_FLAG_ACCESS_WRITE | TEE_DATA_FLAG_OVERWRITE, TEE_HANDLE_NULL,
+		NULL, 0, &object);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to create module hash object, res=%x", res);
+		return res;
+	}
+
+	res = TEE_WriteObjectData(object, hash, MODULE_HASH_SIZE);
+	TEE_CloseObject(object);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to write module hash, res=%x", res);
+		return res;
+	}
+
+	return TEE_SUCCESS;
+}
+
+static TEE_Result load_module_hash(uint8_t *hash, bool *found)
+{
+	TEE_ObjectHandle object = TEE_HANDLE_NULL;
+	TEE_Result res;
+	uint32_t read_bytes;
+
+	*found = false;
+
+	res = TEE_OpenPersistentObject(
+		TEE_STORAGE_PRIVATE, MODULE_HASH_STORAGE_ID, strlen(MODULE_HASH_STORAGE_ID),
+		TEE_DATA_FLAG_ACCESS_READ, &object);
+	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
+		return TEE_SUCCESS; /* Not found, but not an error */
+	}
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to open module hash object, res=%x", res);
+		return res;
+	}
+
+	res = TEE_ReadObjectData(object, hash, MODULE_HASH_SIZE, &read_bytes);
+	TEE_CloseObject(object);
+	if (res != TEE_SUCCESS) {
+		EMSG("Failed to read module hash, res=%x", res);
+		return res;
+	}
+
+	if (read_bytes != MODULE_HASH_SIZE) {
+		EMSG("Invalid module hash size read: %u", read_bytes);
+		return TEE_ERROR_CORRUPT_OBJECT;
+	}
+
+	*found = true;
+	return TEE_SUCCESS;
+}
+
 static keymaster_error_t TA_checkParams(TEE_Param params[TEE_NUM_PARAMS], uint32_t cmd_id)
 {
 	uint8_t *in;
@@ -210,6 +273,7 @@ static uint32_t tee_get_os_patchlevel(void)
 {
 	return optee_km_context.os_patchlevel;
 }
+
 
 static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PARAMS])
 {
@@ -2152,6 +2216,104 @@ out:
 	return error;
 }
 
+static keymaster_error_t TA_setAdditionalAttestationInfo(TEE_Param params[TEE_NUM_PARAMS])
+{
+	uint8_t *in = NULL;
+	uint8_t *in_end = NULL;
+	uint8_t *out = NULL;
+	uint8_t *out_end = NULL;
+	keymaster_error_t error = KM_ERROR_OK;
+	keymaster_key_param_set_t attest_params = EMPTY_PARAM_SET;
+	bool oob = false;
+	
+	DMSG("%s %d", __func__, __LINE__);
+	
+	in = (uint8_t *)params[0].memref.buffer;
+	in_end = in + params[0].memref.size;
+	out = (uint8_t *)params[1].memref.buffer;
+	out_end = out + params[1].memref.size;
+	
+	// Serialize the response error first
+	out = TA_serialize_rsp_err(out, out_end, &error, &oob);
+	if (oob) {
+		EMSG("Out of output buffer bounds");
+		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
+	}
+	
+	// Parse the input AuthorizationSet
+	in += TA_deserialize_auth_set(in, in_end, &attest_params, false, &error);
+	if (error != KM_ERROR_OK) {
+		EMSG("Failed to deserialize attestation parameters");
+		error = KM_ERROR_INVALID_ARGUMENT;
+		goto out;
+	}
+	
+	// Process the parameters
+	for (size_t i = 0; i < attest_params.length; i++) {
+		switch (attest_params.params[i].tag) {
+		case KM_TAG_ROOT_OF_TRUST: {
+			keymaster_blob_t *module_hash = &attest_params.params[i].key_param.blob;
+			uint8_t stored_hash[MODULE_HASH_SIZE];
+			bool hash_found = false;
+			TEE_Result res;
+			
+			// Validate hash size (should be 32 bytes for SHA-256)
+			if (module_hash->data_length != MODULE_HASH_SIZE) {
+				EMSG("Invalid module hash size: %zu", module_hash->data_length);
+				error = KM_ERROR_INVALID_ARGUMENT;
+				goto out;
+			}
+			
+			// Check if hash is already stored in secure storage
+			res = load_module_hash(stored_hash, &hash_found);
+			if (res != TEE_SUCCESS) {
+				EMSG("Failed to load module hash from secure storage, res=%x", res);
+				error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+				goto out;
+			}
+			
+			if (hash_found) {
+				// Check if it's the same hash
+				if (memcmp(stored_hash, module_hash->data, MODULE_HASH_SIZE) != 0) {
+					EMSG("Module hash already set to different value");
+					error = KM_ERROR_ROOT_OF_TRUST_ALREADY_SET;
+					goto out;
+				}
+				// Same hash, ignore (success)
+				DMSG("Module hash already set to same value, ignoring");
+			} else {
+				// First time setting the hash, store it in secure storage
+				res = store_module_hash(module_hash->data);
+				if (res != TEE_SUCCESS) {
+					EMSG("Failed to store module hash in secure storage, res=%x", res);
+					error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
+					goto out;
+				}
+				DMSG("Module hash stored successfully in secure storage");
+			}
+			break;
+		}
+		default:
+			// Ignore unrecognized tags as per KeyMint specification
+			DMSG("Ignoring unrecognized tag: 0x%x", attest_params.params[i].tag);
+			break;
+		}
+	}
+	
+out:
+	if (attest_params.params) {
+		TA_free_params(&attest_params);
+	}
+	
+	// Update error in response if needed
+	if (error != KM_ERROR_OK) {
+		TA_serialize_rsp_err((uint8_t *)params[1].memref.buffer, out_end, &error, &oob);
+	}
+	
+	params[1].memref.size = out - (uint8_t *)params[1].memref.buffer;
+	return error;
+}
+
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 					  uint32_t param_types,
 					  TEE_Param params[TEE_NUM_PARAMS])
@@ -2272,6 +2434,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 	case KM_GET_HW_INFO:
 	case KM_GENERATE_CSR_V2:
 		error = TA_unimplementedOperation(params);
+		break;
+	case KM_SET_ADDITIONAL_ATTESTATION_INFO:
+		DMSG("KM_SET_ADDITIONAL_ATTESTATION_INFO");
+		error = TA_setAdditionalAttestationInfo(params);
 		break;
 
 #ifdef CFG_ATTESTATION_PROVISIONING

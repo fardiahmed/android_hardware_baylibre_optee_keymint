@@ -346,4 +346,31 @@ ScopedAStatus OpteeKeyMintDevice::sendRootOfTrust(const vector<uint8_t>& /* root
     return kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
+ScopedAStatus OpteeKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& info) {
+    keymaster::SetAdditionalAttestationInfoRequest request(impl_->message_version());
+    
+    // Convert KeyParameter vector to AuthorizationSet
+    for (const auto& param : info) {
+        switch (param.tag) {
+            case Tag::MODULE_HASH: {
+                if (param.value.getTag() == KeyParameterValue::blob) {
+                    const vector<uint8_t>& hash_blob = param.value.get<KeyParameterValue::blob>();
+                    keymaster_blob_t hash = {
+                        .data = const_cast<uint8_t*>(hash_blob.data()),
+                        .data_length = hash_blob.size()
+                    };
+                    request.info.push_back(keymaster::TAG_MODULE_HASH, hash);
+                }
+                break;
+            }
+            default:
+                // Ignore unrecognized tags as per AIDL specification
+                break;
+        }
+    }
+    
+    keymaster::SetAdditionalAttestationInfoResponse response = impl_->SetAdditionalAttestationInfo(request);
+    return kmError2ScopedAStatus(response.error);
+}
+
 }  // namespace aidl::android::hardware::security::keymint::optee

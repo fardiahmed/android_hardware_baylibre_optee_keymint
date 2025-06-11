@@ -86,6 +86,8 @@ class OpteeKeyMintDevice : public BnKeyMintDevice {
                                  vector<uint8_t>* rootOfTrust) override;
     ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust) override;
 
+    ScopedAStatus setAdditionalAttestationInfo(const vector<KeyParameter>& info) override;
+
   protected:
     std::shared_ptr<OpteeKeymaster> impl_;
     SecurityLevel securityLevel_;

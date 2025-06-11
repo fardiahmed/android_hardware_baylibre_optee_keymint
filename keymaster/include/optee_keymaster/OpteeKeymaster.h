@@ -69,6 +69,8 @@ class OpteeKeymaster {
             const ConfigureVendorPatchlevelRequest& request);
     GetRootOfTrustResponse GetRootOfTrust(const GetRootOfTrustRequest& request);
     GetHwInfoResponse GetHwInfo();
+    SetAdditionalAttestationInfoResponse SetAdditionalAttestationInfo(
+            const SetAdditionalAttestationInfoRequest& request);
 
     uint32_t message_version() const { return message_version_; }
 

@@ -297,4 +297,11 @@ GetHwInfoResponse OpteeKeymaster::GetHwInfo() {
     return response;
 }
 
+SetAdditionalAttestationInfoResponse OpteeKeymaster::SetAdditionalAttestationInfo(
+        const SetAdditionalAttestationInfoRequest& request) {
+    SetAdditionalAttestationInfoResponse response(message_version());
+    ForwardCommand(KM_SET_ADDITIONAL_ATTESTATION_INFO, request, &response);
+    return response;
+}
+
 }  // namespace keymaster
