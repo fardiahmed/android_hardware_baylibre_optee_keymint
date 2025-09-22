@@ -2314,6 +2314,24 @@ out:
 	return error;
 }
 
+/* Global flag to track early boot state - starts as true, set to false when early boot ends */
+static bool in_early_boot = true;
+static keymaster_error_t TA_earlyBootEnded(TEE_Param params[TEE_NUM_PARAMS])
+{
+	DMSG("TA_earlyBootEnded: ENTRY");
+
+	/* Mark that early boot phase has ended */
+	in_early_boot = false;
+
+	DMSG("TA_earlyBootEnded: Early boot phase ended, KM_TAG_EARLY_BOOT_ONLY keys now disabled");
+
+	/* Serialize empty response (just error code) */
+	params[1].memref.size = sizeof(keymaster_error_t);
+
+	DMSG("TA_earlyBootEnded: EXIT - early boot ended successfully");
+	return KM_ERROR_OK;
+}
+
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 					  uint32_t param_types,
 					  TEE_Param params[TEE_NUM_PARAMS])
@@ -2425,8 +2443,11 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		DMSG("KM_COMPUTE_SHARED_HMAC");
 		error = TA_computeSharedHmac(params);
 		break;
-	case KM_IMPORT_WRAPPED_KEY:
 	case KM_EARLY_BOOT_ENDED:
+		DMSG("KM_EARLY_BOOT_ENDED");
+		error = TA_earlyBootEnded(params);
+		break;
+	case KM_IMPORT_WRAPPED_KEY:
 	case KM_DEVICE_LOCKED:
 	case KM_GENERATE_RKP_KEY:
 	case KM_GENERATE_CSR:
