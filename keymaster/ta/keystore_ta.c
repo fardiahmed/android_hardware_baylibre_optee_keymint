@@ -165,6 +165,18 @@ static keymaster_error_t TA_unimplementedOperation(TEE_Param params[TEE_NUM_PARA
 	return KM_ERROR_UNIMPLEMENTED;
 }
 
+static keymaster_error_t TA_deviceLocked(TEE_Param params[TEE_NUM_PARAMS])
+{
+	DMSG("KM_DEVICE_LOCKED - deprecated method, returning UNIMPLEMENTED");
+
+	/* According to Android KeyMint specification, this method is deprecated and has never been used.
+	 * Implementations should return ErrorCode::UNIMPLEMENTED.
+	 * See: https://source.android.com/docs/security/features/keystore/implementer-ref
+	 */
+	params[1].memref.size = sizeof(keymaster_error_t);
+	return KM_ERROR_UNIMPLEMENTED;
+}
+
 static void TA_init_km_context(void)
 {
 	memset(&optee_km_context, 0, sizeof(tee_km_context_t));
@@ -2554,12 +2566,15 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx __unused, uint32_t cmd_id,
 		error = TA_earlyBootEnded(params);
 		break;
 	case KM_IMPORT_WRAPPED_KEY:
-	case KM_DEVICE_LOCKED:
 	case KM_GENERATE_RKP_KEY:
 	case KM_GENERATE_CSR:
 	case KM_GET_HW_INFO:
 	case KM_GENERATE_CSR_V2:
 		error = TA_unimplementedOperation(params);
+		break;
+	case KM_DEVICE_LOCKED:
+		DMSG("KM_DEVICE_LOCKED");
+		error = TA_deviceLocked(params);
 		break;
 	case KM_SET_ADDITIONAL_ATTESTATION_INFO:
 		DMSG("KM_SET_ADDITIONAL_ATTESTATION_INFO");
