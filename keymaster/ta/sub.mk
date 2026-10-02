@@ -14,3 +14,4 @@ srcs-y += shift.c
 srcs-y += crypto_ec.c
 srcs-y += attestation.c
 srcs-y += mbedtls_proxy.c
+srcs-y += boot_rot.c

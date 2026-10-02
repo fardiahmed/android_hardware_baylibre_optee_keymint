@@ -3,6 +3,7 @@
 
 #include <attestation.h>
 #include <generator.h>
+#include <boot_rot.h>
 
 #include <mbedtls/aes.h>
 #include <mbedtls/base64.h>
@@ -1456,11 +1457,19 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 	unsigned char buf[ASN1_BUF_LEN_DEFAULT];
 	unsigned char *ptr = buf + sizeof(buf);
 	unsigned char *start = buf;
-	//TODO: insert real device lock_state
+	avb_root_of_trust_t rot;
+	const uint8_t *boot_key = key_stub;
 	int lock_state = 0;
 	
 	/* Ensure start is not NULL to avoid false compiler warning */
 	if (!start) return -1;
+
+	/* Bootloader root of trust when U-Boot set it, else the HAL's state and a stub key */
+	if (TA_get_boot_rot(&rot) == TEE_SUCCESS) {
+		verified_boot = rot.verified_boot_state;
+		lock_state = rot.device_locked;
+		boot_key = rot.verified_boot_key;
+	}
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,
 				 mbedtls_asn1_write_enum(&ptr, start, verified_boot));
@@ -1468,7 +1477,7 @@ static int asn1_write_rot(uint8_t verified_boot, unsigned char **p, size_t *len)
 	MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_bool(&ptr, start, lock_state));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret, mbedtls_asn1_write_octet_string(&ptr, start,
-									  key_stub,
+									  boot_key,
 									  sizeof(key_stub)));
 
 	MBEDTLS_ASN1_CHK_ADD(len_ret,

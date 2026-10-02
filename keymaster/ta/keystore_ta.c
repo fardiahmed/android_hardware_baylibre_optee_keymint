@@ -25,6 +25,7 @@
 #include "keystore_ta.h"
 #include "attestation.h"
 #include "mbedtls_proxy.h"
+#include "boot_rot.h"
 
 static TEE_TASessionHandle session_rngSTA = TEE_HANDLE_NULL;
 
@@ -340,7 +341,7 @@ static keymaster_error_t TA_getHmacSharingParameters(TEE_Param params[TEE_NUM_PA
 }
 
 /*
- * Get Root of Trust information from AVB TA
+ * Get Root of Trust information from OP-TEE (boot_rot PTA)
  * This function retrieves the Root of Trust data stored during boot
  * by the bootloader and encodes it for Android KeyMint
  */
@@ -353,11 +354,7 @@ static keymaster_error_t TA_getRootOfTrust(TEE_Param params[TEE_NUM_PARAMS])
 	keymaster_blob_t challenge = {0, 0};
 	keymaster_blob_t rot_blob = {0, 0};
 	keymaster_error_t error = KM_ERROR_OK;
-	TEE_UUID avb_uuid = PTA_AVB_UUID;
-	TEE_TASessionHandle avb_session = TEE_HANDLE_NULL;
 	TEE_Result res = TEE_SUCCESS;
-	uint32_t param_types;
-	TEE_Param avb_params[4];
 	avb_root_of_trust_t rot;
 	
 	/* Input and output buffer setup */
@@ -373,39 +370,14 @@ static keymaster_error_t TA_getRootOfTrust(TEE_Param params[TEE_NUM_PARAMS])
 		goto cleanup;
 	}
 	
-	/* Open session with AVB TA to retrieve Root of Trust */
-	res = TEE_OpenTASession(&avb_uuid, TEE_TIMEOUT_INFINITE, 0, NULL,
-						   &avb_session, NULL);
+	/* Set by U-Boot after AVB, in OP-TEE's boot_rot PTA */
+	res = TA_get_boot_rot(&rot);
 	if (res != TEE_SUCCESS) {
-		EMSG("Failed to open AVB TA session: %x", res);
+		EMSG("Failed to get the boot root of trust: %x", res);
 		error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
 		goto cleanup;
 	}
-	
-	/* Read Root of Trust data from AVB TA persistent storage */
-	param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
-								 TEE_PARAM_TYPE_MEMREF_OUTPUT,
-								 TEE_PARAM_TYPE_NONE,
-								 TEE_PARAM_TYPE_NONE);
-	
-	TEE_MemFill(avb_params, 0, sizeof(avb_params));
-	
-	avb_params[0].memref.buffer = (void *)ROT_PERSIST_NAME;
-	avb_params[0].memref.size = strlen(ROT_PERSIST_NAME);
-	avb_params[1].memref.buffer = &rot;
-	avb_params[1].memref.size = sizeof(rot);
 
-	res = TEE_InvokeTACommand(avb_session, TEE_TIMEOUT_INFINITE,
-							 TA_AVB_CMD_READ_PERSIST_VALUE,
-							 param_types, avb_params, NULL);
-	
-	if (res != TEE_SUCCESS) {
-		EMSG("Failed to read Root of Trust from AVB TA: %x", res);
-		error = KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
-		goto cleanup_session;
-	}
-	DMSG("TA_getRootOfTrust: Données Root of Trust lues avec succès depuis AVB TA");
-	
 	DMSG("Root of Trust retrieved successfully");
 	DMSG("Device locked: %u", rot.device_locked);
 	DMSG("Boot state: %u", rot.verified_boot_state);
@@ -415,7 +387,7 @@ static keymaster_error_t TA_getRootOfTrust(TEE_Param params[TEE_NUM_PARAMS])
 	if (asn1_ret != 0) {
 		EMSG("Failed to ASN.1 encode Root of Trust response");
 		error = KM_ERROR_UNKNOWN_ERROR;
-		goto cleanup_session;
+		goto cleanup;
 	}
 	
 	/* Serialize the response error first (KeyMaster protocol requirement) */
@@ -423,14 +395,10 @@ static keymaster_error_t TA_getRootOfTrust(TEE_Param params[TEE_NUM_PARAMS])
 	error = TA_serialize_blob_akms(out, out_end, &rot_blob, &oob);
 	if (error != KM_ERROR_OK) {
 		EMSG("Failed to serialize Root of Trust response, error=%d", error);
-		goto cleanup_session;
+		goto cleanup;
 	}
 	
 	params[1].memref.size = rot_blob.data_length;
-	
-cleanup_session:
-	if (avb_session != TEE_HANDLE_NULL)
-		TEE_CloseTASession(avb_session);
 	
 cleanup:
 	if (challenge.data)
