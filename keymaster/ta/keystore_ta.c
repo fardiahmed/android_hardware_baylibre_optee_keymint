@@ -2352,7 +2352,7 @@ static keymaster_error_t TA_setAdditionalAttestationInfo(TEE_Param params[TEE_NU
 	out_end = out + params[1].memref.size;
 	
 	// Serialize the response error first
-	out = TA_serialize_rsp_err(out, out_end, &error, &oob);
+	out += TA_serialize_rsp_err(out, out_end, &error, &oob);
 	if (oob) {
 		EMSG("Out of output buffer bounds");
 		return KM_ERROR_INSUFFICIENT_BUFFER_SPACE;
